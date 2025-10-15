@@ -1,619 +1,281 @@
 <!DOCTYPE html>
-<html lang="tr" data-theme="dark">
+<html lang="tr" data-theme="light">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Stratejik Kripto Madencilik Simülatörü</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <style>
-        :root, [data-theme="dark"] {
-            --bg-color: #000000;
-            --panel-bg: rgba(28, 28, 30, 0.75);
-            --border-color: rgba(255, 255, 255, 0.15);
-            --primary-accent: #0A84FF;
-            --green-accent: #30D158;
-            --yellow-accent: #FFD60A;
-            --purple-accent: #BF5AF2;
-            --indigo-accent: #5E5CE6;
-            --red-accent: #FF453A;
-            --text-primary: #FFFFFF;
-            --text-secondary: #8E8E93;
-            --component-bg: #2C2C2E;
-            --component-bg-hover: #3A3A3C;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mineverse PRO</title>
+  <style>
+    :root {
+      --primary: #007aff;
+      --bg-light: #f4f5f7;
+      --panel: rgba(255,255,255,0.75);
+      --text-dark: #1c1c1e;
+      --text-light: #ffffff;
+      --shadow: 0 8px 32px rgba(0,0,0,0.1);
+    }
 
-        [data-theme="light"] {
-            --bg-color: #F2F2F7;
-            --panel-bg: rgba(255, 255, 255, 0.7);
-            --border-color: rgba(0, 0, 0, 0.1);
-            --text-primary: #000000;
-            --text-secondary: #636366;
-            --component-bg: #E5E5EA;
-            --component-bg-hover: #D1D1D6;
-        }
+    [data-theme="dark"] {
+      --bg-light: #1c1c1e;
+      --panel: rgba(36,36,38,0.85);
+      --text-dark: #fefefe;
+      --text-light: #fff;
+      --shadow: 0 8px 32px rgba(255,255,255,0.05);
+    }
 
-        html { -webkit-tap-highlight-color: transparent; transition: background-color 0.3s ease; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+      background: var(--bg-light);
+      color: var(--text-dark);
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      transition: 0.3s ease background;
+      overflow: hidden;
+    }
 
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-primary);
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            transition: color 0.3s ease;
-        }
-        
-        .ios-panel {
-            background-color: var(--panel-bg);
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
-            border: 1px solid var(--border-color);
-            border-radius: 24px;
-            transition: background-color 0.3s ease, border-color 0.3s ease;
-        }
+    .panel {
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      border-radius: 25px;
+      padding: 2rem;
+      width: 90%;
+      max-width: 400px;
+      text-align: center;
+      backdrop-filter: blur(15px);
+      transition: 0.3s ease;
+    }
 
-        .bottom-nav {
-            border-top: 1px solid var(--border-color);
-            padding-bottom: env(safe-area-inset-bottom, 0);
-            transition: border-color 0.3s ease;
-        }
+    h1 {
+      font-size: 2rem;
+      color: var(--primary);
+      margin-bottom: 1rem;
+    }
 
-        .nav-button {
-            color: var(--text-secondary);
-            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), color 0.3s ease;
-        }
-        .nav-button.active { color: var(--primary-accent); }
-        .nav-button:active { transform: scale(0.9); }
+    .btn {
+      background: var(--primary);
+      color: var(--text-light);
+      border: none;
+      border-radius: 14px;
+      padding: 0.9rem 1.4rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(0,122,255,0.3);
+      transition: transform 0.2s ease, background 0.3s ease;
+    }
+    .btn:active { transform: scale(0.96); }
 
-        .page {
-            display: none;
-            animation: fadeIn 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-        }
-        .page.active { display: block; }
-        
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    input {
+      width: 100%;
+      padding: 0.8rem;
+      font-size: 1rem;
+      margin-top: 0.5rem;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      outline: none;
+      transition: border 0.2s ease;
+    }
+    input:focus {
+      border: 1px solid var(--primary);
+    }
 
-        .miner-core { transform-style: preserve-3d; animation: spin 30s linear infinite; }
-        @keyframes spin { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
+    .hidden { display: none; }
 
-        .ring { position: absolute; border-radius: 50%; border: 2px solid; transform-style: preserve-3d; animation: ring-rotate 10s linear infinite; }
-        .ring-1 { width: 100%; height: 100%; border-color: var(--primary-accent); }
-        .ring-2 { width: 80%; height: 80%; border-color: var(--primary-accent); opacity: 0.6; animation-direction: reverse; animation-duration: 8s; }
-        .ring-3 { width: 60%; height: 60%; border-color: var(--primary-accent); opacity: 0.3; animation-duration: 6s; }
-        
-        @keyframes ring-rotate { from { transform: rotateX(70deg) rotateY(0deg); } to { transform: rotateX(70deg) rotateY(360deg); } }
-        
-        .miner-pulse { animation: pulse 2s infinite ease-in-out; }
-        @keyframes pulse {
-            0%, 100% { transform: scale(0.95); opacity: 0.8; box-shadow: 0 0 20px var(--primary-accent), 0 0 40px var(--primary-accent); }
-            50% { transform: scale(1); opacity: 1; box-shadow: 0 0 30px var(--primary-accent), 0 0 60px var(--primary-accent); }
-        }
-        
-        .miner-boosted .ring { border-color: var(--green-accent) !important; }
-        .miner-boosted .miner-pulse { box-shadow: 0 0 30px var(--green-accent), 0 0 60px var(--green-accent) !important; }
+    .coin {
+      font-size: 2.4rem;
+      color: var(--primary);
+      margin: 0.6rem 0;
+      font-weight: 700;
+    }
 
-        .btn { transition: all 0.2s ease; }
-        .btn:active { transform: scale(0.95); filter: brightness(1.2); }
-        .btn:disabled { background-color: var(--component-bg) !important; color: var(--text-secondary) !important; cursor: not-allowed; }
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--text-dark);
+      color: var(--text-light);
+      padding: 0.8rem 1.4rem;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .toast.show { opacity: 1; }
 
-        .progress-bar { background-color: var(--component-bg); overflow: hidden; transition: background-color 0.3s ease; }
-        .progress-bar-fill { transition: width 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+    .avatar {
+      font-size: 3rem;
+      animation: float 2s ease-in-out infinite;
+    }
 
-        #modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
-            z-index: 100; display: none; opacity: 0; transition: opacity 0.3s ease;
-        }
-        #modal-overlay.show { display: flex; opacity: 1; }
-        #modal-content { animation: modal-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-        
-        @keyframes modal-in { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-        
-        #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 200; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
-        .toast { padding: 12px 20px; border-radius: 9999px; font-weight: 600; font-size: 14px; animation: toast-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .toast.dark-text { color: black; }
-        .toast.light-text { color: white; }
-        @keyframes toast-in { from { opacity: 0; transform: translateY(-20px) scale(0.9); } to { opacity: 1; transform: translateY(0) scale(1); } }
-        .floating-text { position: absolute; bottom: 20px; right: 20px; font-weight: 700; font-size: 1rem; color: var(--indigo-accent); pointer-events: none; animation: float-up 2s ease-out forwards; }
-        @keyframes float-up { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-50px); } }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
 
-        /* Theme Toggle Switch */
-        .toggle-switch { display: inline-block; position: relative; width: 50px; height: 30px; }
-        .toggle-switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--component-bg); transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 22px; width: 22px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--primary-accent); }
-        input:checked + .slider:before { transform: translateX(20px); }
+    .countdown {
+      margin-top: 0.5rem;
+      font-size: 0.95rem;
+      color: #777;
+    }
 
-    </style>
+    .boost {
+      background: linear-gradient(90deg, #ffb347, #ffcc33);
+      color: #1c1c1e;
+      box-shadow: 0 4px 10px rgba(255,200,0,0.4);
+    }
+  </style>
 </head>
-<body class="w-full min-h-screen max-w-lg mx-auto flex flex-col antialiased pb-24">
+<body>
 
-    <div id="toast-container"></div>
+  <!-- Giriş Ekranı -->
+  <div class="panel" id="loginPanel">
+    <div class="avatar">👨‍🚀</div>
+    <h1>Mineverse'e Hoş Geldin</h1>
+    <p>Macerana başlamak için ismini yaz:</p>
+    <input id="usernameInput" type="text" placeholder="Kullanıcı adın" />
+    <button class="btn" onclick="startGame()">🚀 Başla</button>
+  </div>
 
-    <main class="flex-grow p-4 space-y-4">
-        <!-- PAGE 1: MINER -->
-        <div id="page-miner" class="page active">
-            <div class="ios-panel p-6 text-center">
-                <div class="w-48 h-48 mx-auto my-6 flex items-center justify-center miner-core">
-                    <div class="relative w-full h-full flex items-center justify-center">
-                        <div class="ring ring-1"></div>
-                        <div class="ring ring-2"></div>
-                        <div class="ring ring-3"></div>
-                        <div id="miner-status-indicator" class="w-1/2 h-1/2 rounded-full flex items-center justify-center transition-all duration-500 miner-pulse">
-                            <svg class="w-3/4 h-3/4 text-white" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="48" stroke="currentColor" stroke-width="4"/><path d="M35 30 H65 M35 70 H65" stroke="currentColor" stroke-width="6" stroke-linecap="round"/><path d="M50 30 V70" stroke="currentColor" stroke-width="6" stroke-linecap="round"/></svg>
-                        </div>
-                    </div>
-                </div>
-                
-                <h2 class="text-5xl font-extrabold tracking-tighter" id="earned-amount">0.00000000</h2>
-                <p class="text-sm font-medium text-gray-400">GEMINI COIN</p>
-                
-                <div class="grid grid-cols-2 gap-4 my-6 text-left">
-                    <div class="ios-panel p-4 rounded-xl">
-                        <p class="text-xs text-gray-400">Oturum Süresi</p>
-                        <p id="timer" class="font-bold text-lg">24:00:00</p>
-                    </div>
-                     <div class="ios-panel p-4 rounded-xl">
-                        <p class="text-xs text-gray-400">Ağ Gücü</p>
-                        <p id="earning-rate" class="font-bold text-lg">0.00010 GMN/s</p>
-                    </div>
-                </div>
-                <div id="active-boost-status" class="hidden text-sm font-semibold text-center mb-4 p-2 rounded-lg" style="background-color: rgba(48, 209, 88, 0.2); color: var(--green-accent);"></div>
-                <button id="mine-button" class="btn w-full text-lg font-semibold py-4 rounded-2xl" style="background: var(--primary-accent);">Madenciliği Başlat</button>
-            </div>
-            <button id="gemini-analysis-button" class="btn w-full text-lg font-semibold py-4 mt-4 rounded-2xl" style="background: var(--purple-accent);">✨ AI Piyasa Analizi</button>
-        </div>
+  <!-- Oyun Paneli -->
+  <div class="panel hidden" id="gamePanel">
+    <h1 id="welcomeTitle">Hoş Geldin!</h1>
+    <div class="coin" id="balance">0.0000 MV</div>
+    <button id="mineBtn" class="btn">⛏️ Madenciliği Başlat</button>
+    <p class="countdown" id="cooldownText"></p>
+    <button class="btn boost" onclick="activateBoost()">⚡ Boost Aktif Et</button>
+    <button class="btn" onclick="buyUpgrade()">💎 Telegram Yükseltme</button>
+  </div>
 
-        <!-- PAGE 2: UPGRADES -->
-        <div id="page-upgrades" class="page">
-             <h1 class="text-3xl font-bold px-2">Yükseltmeler</h1>
-             <div id="upgrades-container" class="space-y-3 mt-4"></div>
-        </div>
+  <div class="toast" id="toast"></div>
 
-        <!-- PAGE 3: BOOSTS -->
-        <div id="page-boosts" class="page">
-             <h1 class="text-3xl font-bold px-2">Güçlendirmeler</h1>
-             <div class="ios-panel p-6 mt-4"><div id="boosts-container" class="space-y-3"></div></div>
-        </div>
+  <script>
+    // Element referansları
+    const loginPanel = document.getElementById('loginPanel');
+    const gamePanel = document.getElementById('gamePanel');
+    const usernameInput = document.getElementById('usernameInput');
+    const welcomeTitle = document.getElementById('welcomeTitle');
+    const mineBtn = document.getElementById('mineBtn');
+    const balanceEl = document.getElementById('balance');
+    const cooldownText = document.getElementById('cooldownText');
+    const toast = document.getElementById('toast');
 
-        <!-- PAGE 4: STAKING -->
-        <div id="page-staking" class="page">
-            <h1 class="text-3xl font-bold px-2">Likidite Havuzu</h1>
-            <div class="ios-panel p-6 mt-4 text-center relative">
-                 <div id="staking-reward-effect-container"></div>
-                 <p class="text-sm font-medium text-gray-400">Kilitli Bakiye</p>
-                 <p id="staked-amount" class="text-4xl font-bold tracking-tight">0.0000</p>
-                 <p class="text-xs text-gray-400 mt-2">Yıllık Getiri Oranı (APY): <span class="font-semibold text-white">~15%</span></p>
-            </div>
-             <div class="ios-panel p-6 mt-4">
-                 <h2 class="font-semibold mb-2">Miktar Kilitle</h2>
-                 <div class="flex gap-2"><input type="number" id="stake-input" class="w-full bg-transparent text-white rounded-lg px-3 py-3 border-2 border-gray-600 focus:border-indigo-500 focus:outline-none" placeholder="0.00"><button id="stake-button" class="btn bg-indigo-500 font-bold py-3 px-6 rounded-lg text-sm">Kilitle</button></div>
-                 <button id="unstake-button" class="btn bg-red-500 font-bold py-3 rounded-lg text-sm mt-4 w-full">Tümünü Çek</button>
-            </div>
-        </div>
-        
-        <!-- PAGE 5: STATS -->
-        <div id="page-stats" class="page">
-             <h1 class="text-3xl font-bold px-2">İstatistikler</h1>
-             <div id="stats-container" class="grid grid-cols-2 gap-4 mt-4"></div>
-        </div>
-        
-        <!-- PAGE 6: SETTINGS -->
-        <div id="page-settings" class="page">
-             <h1 class="text-3xl font-bold px-2">Ayarlar</h1>
-             <div class="ios-panel p-6 mt-4">
-                <div class="flex justify-between items-center">
-                    <span class="font-semibold">Arayüz Teması</span>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="theme-toggle">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-             </div>
-        </div>
-    </main>
+    // Oyun değişkenleri
+    let username = localStorage.getItem('username') || "";
+    let balance = parseFloat(localStorage.getItem('balance')) || 0;
+    let lastMineTime = parseInt(localStorage.getItem('lastMineTime')) || 0;
+    let boostActive = false;
+    let miningActive = false;
 
-    <nav class="bottom-nav ios-panel rounded-t-2xl p-2 fixed bottom-0 left-0 right-0 max-w-lg mx-auto">
-        <div class="flex justify-around">
-            <button class="nav-button active p-2" data-page="miner">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" /></svg>
-            </button>
-            <button class="nav-button p-2" data-page="upgrades">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM16 3a1 1 0 011 1v7.268a2 2 0 010 3.464V16a1 1 0 11-2 0v-1.268a2 2 0 010-3.464V4a1 1 0 011-1z" /></svg>
-            </button>
-            <button class="nav-button p-2" data-page="boosts">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clip-rule="evenodd" /></svg>
-            </button>
-            <button class="nav-button p-2" data-page="staking">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" /><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd" /></svg>
-            </button>
-            <button class="nav-button p-2" data-page="stats">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" /></svg>
-            </button>
-            <button class="nav-button p-2" data-page="settings">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.982.54 2.295 0 3.277-1.372.836-.836 2.942 2.106 2.106a1.532 1.532 0 012.286.948c.38 1.56 2.6 1.56 2.98 0a1.532 1.532 0 012.286-.948c1.372.836 2.942-.734 2.106-2.106a1.532 1.532 0 010-3.277c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.286-.948zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>
-            </button>
-        </div>
-    </nav>
-    
-    <div id="modal-overlay" class="items-center justify-center p-4">
-        <div id="modal-content" class="ios-panel p-6 w-full max-w-md">
-             <h2 id="modal-title" class="text-2xl font-bold mb-4"></h2>
-             <p id="modal-text" class="text-gray-300"></p>
-             <button id="modal-close-button" class="btn w-full text-lg font-semibold py-3 mt-6 rounded-2xl" style="background: var(--primary-accent);">Kapat</button>
-        </div>
-    </div>
+    const miningDuration = 15 * 1000; // 15 saniye
+    const miningCooldown = 24 * 60 * 60 * 1000; // 24 saat
 
+    // Tema otomatik (sistem teması)
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)");
+    document.documentElement.dataset.theme = prefersDark.matches ? "dark" : "light";
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const el = (id) => document.getElementById(id);
+    // Hoş geldin ekranı
+    if (username) {
+      showGamePanel();
+    }
 
-            const elements = {
-                pages: document.querySelectorAll('.page'),
-                navButtons: document.querySelectorAll('.nav-button'),
-                earnedAmountEl: el('earned-amount'),
-                timerEl: el('timer'),
-                earningRateEl: el('earning-rate'),
-                mineButton: el('mine-button'),
-                minerStatusIndicator: el('miner-status-indicator'),
-                activeBoostStatus: el('active-boost-status'),
-                geminiButton: el('gemini-analysis-button'),
-                upgradesContainer: el('upgrades-container'),
-                boostsContainer: el('boosts-container'),
-                stakedAmountEl: el('staked-amount'),
-                stakeInput: el('stake-input'),
-                stakeButton: el('stake-button'),
-                unstakeButton: el('unstake-button'),
-                stakingRewardEffectContainer: el('staking-reward-effect-container'),
-                statsContainer: el('stats-container'),
-                themeToggle: el('theme-toggle'),
-                modalOverlay: el('modal-overlay'),
-                modalTitle: el('modal-title'),
-                modalText: el('modal-text'),
-                modalCloseButton: el('modal-close-button'),
-                toastContainer: el('toast-container'),
-            };
+    function startGame() {
+      const name = usernameInput.value.trim();
+      if (!name) return showToast("İsim girmelisin!");
+      username = name;
+      localStorage.setItem('username', name);
+      showToast(`Hoş geldin, ${name}! 🌟`);
+      showGamePanel();
+    }
 
-            const MINING_BASE_DURATION_MS = 24 * 60 * 60 * 1000;
-            const STAKING_APY = 0.15;
-            const SAVE_INTERVAL_MS = 3000;
+    function showGamePanel() {
+      loginPanel.classList.add('hidden');
+      gamePanel.classList.remove('hidden');
+      welcomeTitle.textContent = `👋 Hoş geldin ${username}`;
+      updateBalanceDisplay();
+      checkMiningCooldown();
+    }
 
-            const UPGRADE_CONFIG = {
-                core: { name: "İşlemci Çekirdeği", desc: "Temel kazım oranını artırır.", baseCost: 0.1, costMultiplier: 1.8, baseRate: 0.0001, rateMultiplier: 1.7, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M12 6V4m0 16v-2M12 12l-2 2-2-2m4 4l2-2 2 2" /></svg>`},
-                cooling: { name: "Soğutma Sistemi", desc: "Verimliliği artırarak kazancı çoğaltır.", baseCost: 0.5, costMultiplier: 2.2, baseMultiplier: 1.0, multiplierBonus: 0.1, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>` },
-                battery: { name: "Batarya Kapasitesi", desc: "Oturum süresini uzatır.", baseCost: 1, costMultiplier: 3, baseDuration: MINING_BASE_DURATION_MS, durationBonus: 2 * 3600 * 1000, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>`},
-            };
-            
-            const BOOST_CONFIG = [
-                { id: 'boost1', duration: 10 * 60 * 1000, multiplier: 2, cost: 0.2, label: '10 Dakika x2 Güç', desc: "Kazım hızını 10 dakika boyunca ikiye katla." },
-                { id: 'boost2', duration: 30 * 60 * 1000, multiplier: 3, cost: 1.0, label: '30 Dakika x3 Güç', desc: "Kazım hızını 30 dakika boyunca üçe katla."},
-            ];
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2500);
+    }
 
-            let state = {};
-            const defaultState = {
-                totalEarned: 0.0,
-                miningStartTime: null,
-                lastUpdateTimestamp: Date.now(),
-                upgradeLevels: { core: 0, cooling: 0, battery: 0 },
-                stakedAmount: 0.0,
-                activeBoost: { type: null, endTime: 0 },
-                settings: {
-                    theme: 'dark'
-                },
-                stats: {
-                    totalMined: 0,
-                    totalStaked: 0,
-                    boostsUsed: 0,
-                    upgradesPurchased: 0
-                }
-            };
-            
-            const saveState = () => localStorage.setItem('geminiMinerStateV5', JSON.stringify(state));
-            const loadState = () => {
-                state = { ...defaultState };
-                const saved = localStorage.getItem('geminiMinerStateV5');
-                if (saved) {
-                   const savedState = JSON.parse(saved);
-                   state = { ...state, ...savedState };
-                   state.upgradeLevels = { ...defaultState.upgradeLevels, ...(savedState.upgradeLevels || {}) };
-                   state.activeBoost = { ...defaultState.activeBoost, ...(savedState.activeBoost || {}) };
-                   state.settings = { ...defaultState.settings, ...(savedState.settings || {}) };
-                   state.stats = { ...defaultState.stats, ...(savedState.stats || {}) };
-                }
-            };
-            
-            const applyTheme = (theme) => {
-                document.documentElement.setAttribute('data-theme', theme);
-                elements.themeToggle.checked = theme === 'dark';
-            };
+    function updateBalanceDisplay() {
+      balanceEl.textContent = balance.toFixed(4) + " MV";
+    }
 
-            elements.themeToggle.addEventListener('change', () => {
-                const newTheme = elements.themeToggle.checked ? 'dark' : 'light';
-                state.settings.theme = newTheme;
-                applyTheme(newTheme);
-            });
+    function saveState() {
+      localStorage.setItem('balance', balance);
+      localStorage.setItem('lastMineTime', lastMineTime);
+    }
 
-            const showToast = (message, type = 'success') => {
-                const toast = document.createElement('div');
-                toast.textContent = message;
-                const isDark = state.settings.theme === 'dark';
-                toast.className = `toast ${isDark ? 'dark-text' : 'light-text'}`;
-                const color = type === 'success' ? 'var(--green-accent)' : type === 'error' ? 'var(--red-accent)' : 'var(--primary-accent)';
-                toast.style.backgroundColor = color;
-                if(type === 'success' && !isDark) toast.classList.add('light-text');
-                else toast.classList.add('dark-text');
+    function startMining() {
+      if (miningActive) return;
+      const now = Date.now();
+      if (now - lastMineTime < miningCooldown) {
+        showToast("⏳ Henüz yeniden madencilik yapamazsın!");
+        return;
+      }
+      miningActive = true;
+      mineBtn.textContent = "⛏️ Kazım Devam Ediyor...";
+      mineBtn.classList.add('disabled');
 
+      const rewardPerSec = boostActive ? 0.0004 : 0.0002;
+      const interval = setInterval(() => {
+        balance += rewardPerSec;
+        updateBalanceDisplay();
+      }, 1000);
 
-                elements.toastContainer.appendChild(toast);
-                setTimeout(() => {
-                    toast.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-                    toast.style.opacity = '0';
-                    toast.style.transform = 'translateY(-20px)';
-                    setTimeout(() => toast.remove(), 300);
-                }, 3000);
-            };
+      setTimeout(() => {
+        clearInterval(interval);
+        miningActive = false;
+        lastMineTime = Date.now();
+        saveState();
+        showToast("🔥 Kazım tamamlandı!");
+        mineBtn.textContent = "✅ Madencilik Bitti";
+        checkMiningCooldown();
+      }, miningDuration);
+    }
 
-            const createFloatingText = (text, container) => {
-                const el = document.createElement('div');
-                el.className = 'floating-text';
-                el.textContent = text;
-                container.appendChild(el);
-                setTimeout(() => el.remove(), 2000);
-            };
+    function checkMiningCooldown() {
+      const now = Date.now();
+      const remaining = miningCooldown - (now - lastMineTime);
+      if (remaining <= 0) {
+        mineBtn.textContent = "⛏️ Madenciliği Başlat";
+        mineBtn.classList.remove('disabled');
+        cooldownText.textContent = "";
+      } else {
+        const hrs = Math.floor(remaining / 3600000);
+        const mins = Math.floor((remaining % 3600000) / 60000);
+        const secs = Math.floor((remaining % 60000) / 1000);
+        cooldownText.textContent = `⏱️ ${hrs} sa ${mins} dk ${secs} sn sonra tekrar madencilik yapabilirsin.`;
+        mineBtn.classList.add('disabled');
+        setTimeout(checkMiningCooldown, 1000);
+      }
+    }
 
-            const formatTime = (ms) => { if (ms < 0) ms = 0; const s = Math.floor(ms / 1000); return `${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor(s%3600/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; };
-            
-            const calculate = {
-                upgradeCost: (type, level) => UPGRADE_CONFIG[type].baseCost * Math.pow(UPGRADE_CONFIG[type].costMultiplier, level),
-                miningRate: () => {
-                    const coreLevel = state.upgradeLevels.core; const coolingLevel = state.upgradeLevels.cooling;
-                    const baseRate = UPGRADE_CONFIG.core.baseRate * Math.pow(UPGRADE_CONFIG.core.rateMultiplier, coreLevel);
-                    const coolingMultiplier = UPGRADE_CONFIG.cooling.baseMultiplier + (coolingLevel * UPGRADE_CONFIG.cooling.multiplierBonus);
-                    const boost = BOOST_CONFIG.find(b => b.id === state.activeBoost.type);
-                    const boostMultiplier = (state.activeBoost.endTime > Date.now() && boost) ? boost.multiplier : 1;
-                    return baseRate * coolingMultiplier * boostMultiplier;
-                },
-                sessionDuration: () => UPGRADE_CONFIG.battery.baseDuration + (state.upgradeLevels.battery * UPGRADE_CONFIG.battery.durationBonus),
-            };
-            
-            const animateValue = (obj, start, end, duration) => {
-                let startTimestamp = null;
-                const step = (timestamp) => {
-                    if (!startTimestamp) startTimestamp = timestamp;
-                    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-                    const value = progress * (end - start) + start;
-                    obj.textContent = value.toFixed(8);
-                    if (progress < 1) { window.requestAnimationFrame(step); }
-                };
-                window.requestAnimationFrame(step);
-            }
+    function activateBoost() {
+      if (boostActive) return showToast("⚡ Boost zaten aktif!");
+      boostActive = true;
+      showToast("⚡ Boost modu aktif! 2x kazanç 30 saniye boyunca!");
+      setTimeout(() => {
+        boostActive = false;
+        showToast("Boost süresi doldu ⏳");
+      }, 30000);
+    }
 
-            const renderUpgradesUI = () => {
-                elements.upgradesContainer.innerHTML = '';
-                Object.keys(UPGRADE_CONFIG).forEach(key => {
-                    const config = UPGRADE_CONFIG[key]; const level = state.upgradeLevels[key];
-                    const cost = calculate.upgradeCost(key, level); const canAfford = state.totalEarned >= cost;
-                    const progress = Math.min((state.totalEarned / cost) * 100, 100);
-                    const template = `
-                        <div class="ios-panel p-4">
-                            <div class="flex items-center gap-4">
-                                <div class="w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-lg" style="background-color: var(--yellow-accent); color: #000;">${config.icon}</div>
-                                <div>
-                                    <h3 class="font-bold text-lg">${config.name} <span class="text-sm text-gray-400">Lv. ${level + 1}</span></h3>
-                                    <p class="text-xs text-gray-400">${config.desc}</p>
-                                </div>
-                            </div>
-                            <div class="mt-4 space-y-2">
-                                <div class="w-full progress-bar rounded-full h-2"><div class="progress-bar-fill h-2 rounded-full" style="width: ${progress}%; background-color: var(--yellow-accent);"></div></div>
-                                <button data-upgrade-type="${key}" class="btn upgrade-button w-full font-semibold py-3 rounded-lg" style="background-color: ${canAfford ? 'var(--yellow-accent)' : 'var(--component-bg)'}; color: #000;" ${canAfford ? '' : 'disabled'}>
-                                    Yükselt (${cost.toFixed(4)} GMN)
-                                </button>
-                            </div>
-                        </div>`;
-                    elements.upgradesContainer.innerHTML += template;
-                });
-                document.querySelectorAll('.upgrade-button').forEach(btn => btn.addEventListener('click', purchaseUpgrade));
-            };
-            
-            const renderBoostsUI = () => {
-                elements.boostsContainer.innerHTML = '';
-                BOOST_CONFIG.forEach(boost => {
-                    const canAfford = state.totalEarned >= boost.cost;
-                    const isBoostActive = state.activeBoost.endTime > Date.now();
-                    const template = `
-                        <div>
-                            <h3 class="font-bold text-lg">${boost.label}</h3>
-                            <p class="text-sm text-gray-400 mb-3">${boost.desc}</p>
-                            <button data-boost-id="${boost.id}" class="btn boost-button w-full font-semibold py-3 rounded-lg" style="background: var(--green-accent); color: #000;" ${canAfford && !isBoostActive ? '' : 'disabled'}>
-                                Etkinleştir (${boost.cost.toFixed(2)} GMN)
-                            </button>
-                        </div>`;
-                    elements.boostsContainer.innerHTML += template;
-                });
-                document.querySelectorAll('.boost-button').forEach(btn => btn.addEventListener('click', purchaseBoost));
-            };
+    function buyUpgrade() {
+      showToast("💎 Telegram’a yönlendiriliyorsun...");
+      setTimeout(() => window.open("https://t.me/mineverse_support", "_blank"), 1500);
+    }
 
-            const renderStatsUI = () => {
-                const statsData = [
-                    { label: 'Toplam Kazım', value: state.stats.totalMined.toFixed(6) + ' GMN' },
-                    { label: 'Toplam Staking Geliri', value: state.stats.totalStaked.toFixed(6) + ' GMN' },
-                    { label: 'Kullanılan Güçlendirme', value: state.stats.boostsUsed },
-                    { label: 'Yapılan Yükseltme', value: state.stats.upgradesPurchased },
-                ];
-                elements.statsContainer.innerHTML = statsData.map(stat => `
-                    <div class="ios-panel p-4">
-                        <p class="text-xs text-gray-400">${stat.label}</p>
-                        <p class="font-bold text-2xl">${stat.value}</p>
-                    </div>
-                `).join('');
-            };
+    mineBtn.addEventListener('click', startMining);
+    setInterval(saveState, 5000);
+  </script>
 
-            const updateDashboardUI = () => {
-                const isMining = !!state.miningStartTime;
-                elements.mineButton.textContent = isMining ? 'Oturum Aktif' : 'Madenciliği Başlat';
-                elements.mineButton.disabled = isMining;
-                elements.minerStatusIndicator.classList.toggle('bg-gray-700', !isMining);
-                elements.minerStatusIndicator.classList.toggle('bg-sky-500/20', isMining);
-                
-                const isBoosted = state.activeBoost.endTime > Date.now();
-                elements.minerStatusIndicator.parentElement.parentElement.classList.toggle('miner-boosted', isBoosted);
-                if(isBoosted){
-                    elements.activeBoostStatus.classList.remove('hidden');
-                    elements.activeBoostStatus.textContent = `Güçlendirme Aktif: ${formatTime(state.activeBoost.endTime - Date.now())}`;
-                } else {
-                    elements.activeBoostStatus.classList.add('hidden');
-                }
-            };
-            
-            const updateStakingUI = () => {
-                elements.stakedAmountEl.textContent = state.stakedAmount.toFixed(4);
-                elements.unstakeButton.disabled = state.stakedAmount <= 0;
-            };
-
-            const purchaseUpgrade = (e) => {
-                const type = e.currentTarget.dataset.upgradeType; const level = state.upgradeLevels[type];
-                const cost = calculate.upgradeCost(type, level);
-                if (state.totalEarned >= cost) {
-                    state.totalEarned -= cost; state.upgradeLevels[type]++; state.stats.upgradesPurchased++;
-                    showToast(`${UPGRADE_CONFIG[type].name} yükseltildi!`);
-                }
-            };
-            
-            const purchaseBoost = (e) => {
-                const id = e.currentTarget.dataset.boostId; const boost = BOOST_CONFIG.find(b => b.id === id);
-                if(boost && state.totalEarned >= boost.cost && state.activeBoost.endTime <= Date.now()){
-                    state.totalEarned -= boost.cost; state.activeBoost = { type: id, endTime: Date.now() + boost.duration };
-                    state.stats.boostsUsed++;
-                    showToast(`${boost.label} etkinleştirildi!`);
-                }
-            };
-
-            const stopMining = () => {
-                if (!state.miningStartTime) return;
-                const sessionDuration = calculate.sessionDuration();
-                const sessionEarnings = (sessionDuration / 1000) * calculate.miningRate();
-                state.totalEarned += sessionEarnings - ((Date.now() - state.miningStartTime) / 1000 * calculate.miningRate()); // Add remaining amount
-                
-                state.miningStartTime = null; 
-                showToast('Madencilik oturumu tamamlandı!', 'info'); 
-            };
-            
-            const continuousUpdateLoop = () => {
-                const now = Date.now();
-                const deltaTime = now - state.lastUpdateTimestamp;
-
-                if (deltaTime > 0) {
-                    if (state.stakedAmount > 0) {
-                        const earningsPerSecond = (state.stakedAmount * STAKING_APY) / (365 * 24 * 60 * 60);
-                        const earned = (deltaTime / 1000) * earningsPerSecond;
-                        state.totalEarned += earned;
-                        state.stats.totalStaked += earned;
-                        if(Math.random() < 0.05) createFloatingText(`+${earned.toFixed(7)}`, elements.stakingRewardEffectContainer);
-                    }
-
-                    if (state.miningStartTime) {
-                        const sessionDuration = calculate.sessionDuration();
-                        const elapsedTime = now - state.miningStartTime;
-
-                        if (elapsedTime >= sessionDuration) {
-                            stopMining();
-                        } else {
-                            const rate = calculate.miningRate();
-                            const earned = (deltaTime / 1000) * rate;
-                            state.totalEarned += earned;
-                            state.stats.totalMined += earned;
-                            elements.timerEl.textContent = formatTime(sessionDuration - elapsedTime);
-                        }
-                    }
-                }
-                state.lastUpdateTimestamp = now;
-                
-                elements.earnedAmountEl.textContent = state.totalEarned.toFixed(8);
-                elements.earningRateEl.textContent = `${calculate.miningRate().toFixed(5)} GMN/s`;
-                
-                updateDashboardUI(); renderUpgradesUI(); renderBoostsUI(); updateStakingUI(); renderStatsUI();
-                
-                requestAnimationFrame(continuousUpdateLoop);
-            };
-            
-            const startMining = () => {
-                if (state.miningStartTime) return;
-                state.miningStartTime = Date.now();
-                state.lastUpdateTimestamp = Date.now();
-                showToast('Madencilik oturumu başlatıldı!', 'info');
-            };
-
-            const showModal = (title, text) => {
-                elements.modalTitle.textContent = title;
-                elements.modalText.textContent = text;
-                elements.modalOverlay.classList.add('show');
-            };
-
-            const getMarketAnalysis = async () => {
-                showModal('AI Piyasa Analizi', 'Analiz oluşturuluyor, lütfen bekleyin...');
-                const apiKey = ""; 
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-                const systemPrompt = "You are a world-class crypto market analyst. You provide short, engaging, and insightful market reports. Your tone is professional but slightly optimistic and futuristic.";
-                const userQuery = "Write a brief market analysis report for our fictional cryptocurrency, 'GEMINI COIN'. Highlight its innovative (fictional) integration with decentralized AI networks, its stable transaction speed, and its potential for future growth in the Web3 ecosystem. Keep it to one paragraph.";
-                const payload = { contents: [{ parts: [{ text: userQuery }] }], systemInstruction: { parts: [{ text: systemPrompt }] }, };
-
-                try {
-                    const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                    if (!response.ok) throw new Error(`API error: ${response.status}`);
-                    const result = await response.json();
-                    const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-                    elements.modalText.textContent = text || 'Analiz alınamadı.';
-                } catch (error) {
-                    elements.modalText.textContent = 'Bir hata oluştu. Lütfen tekrar deneyin.';
-                }
-            };
-            
-            const initializeApp = () => {
-                loadState();
-                applyTheme(state.settings.theme);
-                setInterval(saveState, SAVE_INTERVAL_MS);
-                continuousUpdateLoop();
-            };
-
-            elements.navButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    elements.navButtons.forEach(btn => btn.classList.remove('active'));
-                    button.classList.add('active');
-                    elements.pages.forEach(page => page.classList.remove('active'));
-                    el(`page-${button.dataset.page}`).classList.add('active');
-                });
-            });
-
-            elements.mineButton.addEventListener('click', startMining);
-            elements.geminiButton.addEventListener('click', getMarketAnalysis);
-            elements.modalCloseButton.addEventListener('click', () => elements.modalOverlay.classList.remove('show'));
-            
-            elements.stakeButton.addEventListener('click', () => {
-                const amount = parseFloat(elements.stakeInput.value);
-                if (!isNaN(amount) && amount > 0 && state.totalEarned >= amount) {
-                    state.totalEarned -= amount; state.stakedAmount += amount;
-                    elements.stakeInput.value = '';
-                    showToast(`${amount.toFixed(4)} GMN kilitlendi!`);
-                } else {
-                    showToast('Yetersiz bakiye veya geçersiz miktar!', 'error');
-                }
-            });
-            elements.unstakeButton.addEventListener('click', () => {
-                if(state.stakedAmount > 0){
-                    const amount = state.stakedAmount;
-                    state.totalEarned += state.stakedAmount; state.stakedAmount = 0;
-                    showToast(`${amount.toFixed(4)} GMN çekildi!`);
-                }
-            });
-
-            initializeApp();
-        });
-    </script>
 </body>
 </html>
-
