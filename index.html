@@ -1,759 +1,1475 @@
+<!DOCTYPE html>
 <html lang="tr" data-theme="light">
 <head>
-<meta charset="UTF-8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Kripto İmparatorluğu Simülatörü</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Stratejik Kripto Madencilik Simülatörü</title>
-<script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js for optional sound effects (disabled by default) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<style>
-:root, [data-theme="dark"] {
---bg-color: #000000;
-            --panel-bg: rgba(28, 28, 30, 0.7);
-            --border-color: rgba(255, 255, 255, 0.1);
-            --shadow-color: rgba(0,0,0,0.2);
-            --panel-bg: rgba(28, 28, 30, 0.75);
-            --border-color: rgba(255, 255, 255, 0.15);
---primary-accent: #0A84FF;
---green-accent: #30D158;
---yellow-accent: #FFD60A;
---purple-accent: #BF5AF2;
---indigo-accent: #5E5CE6;
---red-accent: #FF453A;
---text-primary: #FFFFFF;
-            --text-secondary: #AEAEB2;
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        /* iOS Dark Mode Variables (Updated for deeper, professional look) */
+        :root, [data-theme="dark"] {
+            --bg-color: #0d0d10; /* Darker background */
+            --panel-bg: rgba(30, 30, 35, 0.75); /* Deeper glass panel */
+            --border-color: rgba(255, 255, 255, 0.12); /* Slightly more visible border */
+            --shadow-color: rgba(0,0,0,0.5); /* Stronger shadow */
+            --primary-accent: #0A84FF; /* Blue (GC) */
+            --green-accent: #30D158; /* Green (TON) */
+            --yellow-accent: #FFD60A;
+            --purple-accent: #BF5AF2;
+            --indigo-accent: #5E5CE6;
+            --red-accent: #FF453A; /* Red (USDT) */
+            --text-primary: #FFFFFF;
             --text-secondary: #8E8E93;
---component-bg: #2C2C2E;
+            --component-bg: #2C2C2E;
             --component-bg-hover: #3A3A3C;
-}
+            --market-up: #34c759;
+            --market-down: #ff3b30;
+            --passive-color: #555555; /* NEW: Dark Passive Color */
+        }
 
-[data-theme="light"] {
---bg-color: #F2F2F7;
-            --panel-bg: rgba(255, 255, 255, 0.65);
-            --border-color: rgba(0, 0, 0, 0.08);
-            --shadow-color: rgba(0,0,0,0.05);
-            --text-primary: #1C1C1E;
-            --panel-bg: rgba(255, 255, 255, 0.7);
-            --border-color: rgba(0, 0, 0, 0.1);
-            --text-primary: #000000;
---text-secondary: #636366;
---component-bg: #E5E5EA;
+        /* iOS Light Mode Variables (CRYSTAL GLASS THEME) */
+        [data-theme="light"] {
+            --bg-color: #F9F9F9; /* Very light, clean background */
+            --panel-bg: rgba(255, 255, 255, 0.9); /* Opaque, white glass */
+            --border-color: rgba(0, 0, 0, 0.08); /* Light border */
+            --shadow-color: rgba(0,0,0,0.08); /* Soft shadow */
+            --primary-accent: #0A84FF; /* Blue (GC) */
+            --green-accent: #30D158; /* Green (TON) */
+            --yellow-accent: #FFD60A;
+            --purple-accent: #BF5AF2;
+            --indigo-accent: #5E5CE6;
+            --red-accent: #FF453A; /* Red (USDT) */
+            --text-primary: #1C1C1E; /* Dark text */
+            --text-secondary: #636366;
+            --component-bg: #E5E5EA;
             --component-bg-hover: #D1D1D6;
-}
+            --market-up: #34c759;
+            --market-down: #ff3b30;
+            --passive-color: #E5E5E5; /* NEW: Light Passive Color (Light Gray) */
+        }
 
         html { -webkit-tap-highlight-color: transparent; }
-        html { -webkit-tap-highlight-color: transparent; transition: background-color 0.3s ease; }
 
-body {
-font-family: 'Inter', sans-serif;
-background-color: var(--bg-color);
-color: var(--text-primary);
--webkit-font-smoothing: antialiased;
--moz-osx-font-smoothing: grayscale;
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
             transition: background-color 0.4s ease, color 0.4s ease;
             padding-top: env(safe-area-inset-top, 0);
-            transition: color 0.3s ease;
-}
-
+            min-height: 100vh;
+            /* YATAY KAYDIRMAYI ÖNLE */
+            overflow-x: hidden;
+            /* DİKEY OLARAK EKRANA SIĞDIRMA */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
         
-.ios-panel {
-background-color: var(--panel-bg);
-            backdrop-filter: blur(25px) saturate(180%);
-            -webkit-backdrop-filter: blur(25px) saturate(180%);
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
-border: 1px solid var(--border-color);
-            border-radius: 28px;
-            box-shadow: 0 8px 32px 0 var(--shadow-color);
-            transition: background-color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
-            border-radius: 24px;
-            transition: background-color 0.3s ease, border-color 0.3s ease;
-}
+        /* Ana Kapsayıcı ve İçerik Alanı */
+        .app-main-content {
+            flex-grow: 1;
+            overflow-y: hidden; /* Sayfa değişimlerinde kaydırmayı engellemek için */
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* NeoGlass Panel Styling (Increased blur and border radius) */
+        .ios-panel {
+            background-color: var(--panel-bg);
+            backdrop-filter: blur(30px) saturate(200%); /* Stronger blur */
+            -webkit-backdrop-filter: blur(30px) saturate(200%);
+            border: 1px solid var(--border-color);
+            border-radius: 28px; /* Slightly larger radius */
+            box-shadow: 0 12px 40px 0 var(--shadow-color);
+            transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.2s;
+        }
+        .ios-panel:hover {
+            transform: translateY(-1px);
+        }
 
-.bottom-nav {
-border-top: 1px solid var(--border-color);
+        /* Navigation */
+        .bottom-nav {
+            border-top: 1px solid var(--border-color);
             padding-bottom: env(safe-area-inset-bottom, 1rem);
-            transition: border-color 0.4s ease;
-            padding-bottom: env(safe-area-inset-bottom, 0);
             transition: border-color 0.3s ease;
-}
+        }
 
-.nav-button {
-color: var(--text-secondary);
-            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), color 0.4s ease;
+        .nav-button {
+            color: var(--text-secondary);
             transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), color 0.3s ease;
-}
-.nav-button.active { color: var(--primary-accent); }
-.nav-button:active { transform: scale(0.9); }
+        }
+        .nav-button.active { color: var(--primary-accent); }
+        .nav-button:active { transform: scale(0.9); }
 
-        .page { display: none; animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        /* Page Transitions */
         .page {
             display: none;
+            /* YÜKSEKLİĞİ TAM KAPSAMAK İÇİN flex-grow eklendi */
+            flex-grow: 1; 
             animation: fadeIn 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+            overflow-y: auto; /* Sayfa içi kaydırma */
+            padding-bottom: 2rem;
         }
-.page.active { display: block; }
+        .page.active { display: flex; flex-direction: column;}
         
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
+        /* Miner Core Base Style */
         .miner-container { perspective: 1000px; }
-        .miner-core { transform-style: preserve-3d; animation: core-rotate 45s linear infinite; }
-        @keyframes core-rotate { from { transform: rotateY(0deg) rotateX(10deg); } to { transform: rotateY(360deg) rotateX(10deg); } }
-        .miner-core { transform-style: preserve-3d; animation: spin 30s linear infinite; }
-        @keyframes spin { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
+        .miner-core { 
+            transform-style: preserve-3d;
+            border-radius: 50%;
+            /* Gecikmeli Yumuşak Geçiş (1.2s) */
+            transition: all 1.2s cubic-bezier(0.165, 0.84, 0.44, 1);
+            cursor: pointer;
+            filter: drop-shadow(0 0 5px rgba(0,0,0,0.2)); /* Derinlik hissi */
+            /* New: Liquid Surface Look */
+            background: radial-gradient(circle at 70% 30%, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 90%);
+        }
+        
+        /* Miner Core PASSIVE (Inactive - Gray) State: Liquid Gray */
+        .miner-core:not(.miner-active) {
+            background-color: var(--passive-color);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1), inset 0 0 10px rgba(0, 0, 0, 0.05);
+            opacity: 0.8;
+            animation: organic-pulse 3s infinite ease-in-out;
+        }
+        
+        /* NEW: Organic Pulse Animation (Squish & Stretch - Su Damlası Hareketi) */
+        @keyframes organic-pulse {
+            0%, 100% { 
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1), inset 0 0 10px rgba(0, 0, 0, 0.05); 
+                transform: scale(0.98) rotate(0deg);
+            }
+            50% { 
+                box-shadow: 0 0 25px rgba(0, 0, 0, 0.3), inset 0 0 15px rgba(0, 0, 0, 0.1); 
+                transform: scale(1.02) rotate(2deg);
+            }
+        }
+        
+        /* Miner Core ACTIVE (Mining - Dynamic Color) State: Liquid Dynamic */
+        .miner-core.miner-active {
+            opacity: 1;
+            animation: none; /* Aktifken organik animasyonu durdur */
+        }
 
-        .ring { position: absolute; border-radius: 50%; border: 2.5px solid; transform-style: preserve-3d; }
-        .ring-1 { width: 100%; height: 100%; border-color: var(--primary-accent); animation: r1 12s cubic-bezier(0.34, 0, 0.66, 1) infinite; }
-        .ring-2 { width: 100%; height: 100%; border-color: var(--primary-accent); opacity: 0.5; animation: r2 12s cubic-bezier(0.34, 0, 0.66, 1) infinite; }
-        .ring-3 { width: 60%; height: 60%; border: 1.5px solid var(--primary-accent); opacity: 0.3; animation: r3 8s cubic-bezier(0.34, 0, 0.66, 1) infinite; }
-        @keyframes r1 { 0%, 100% { transform: rotateX(70deg) rotateY(0deg) scale(1); } 50% { transform: rotateX(70deg) rotateY(180deg) scale(0.95); } }
-        @keyframes r2 { 0%, 100% { transform: rotateX(0deg) rotateY(45deg) scale(1); } 50% { transform: rotateX(180deg) rotateY(45deg) scale(0.95); } }
-        @keyframes r3 { 0%, 100% { transform: rotateX(90deg) rotateZ(0deg) scale(1); } 50% { transform: rotateX(90deg) rotateZ(180deg) scale(0.95); } }
+        /* Specific Mining Colors */
+        .miner-active.coin-GC { 
+            background-color: var(--primary-accent); 
+            box-shadow: 0 0 40px var(--primary-accent), inset 0 0 20px rgba(10, 132, 255, 0.5);
+        }
+        .miner-active.coin-TON { 
+            background-color: var(--green-accent); 
+            box-shadow: 0 0 40px var(--green-accent), inset 0 0 20px rgba(48, 209, 88, 0.5);
+        }
+        .miner-active.coin-USDT { 
+            background-color: var(--red-accent); 
+            box-shadow: 0 0 40px var(--red-accent), inset 0 0 20px rgba(255, 69, 58, 0.5);
+        }
 
+        /* Rings (Dynamic Color) */
+        .ring { 
+            position: absolute; border-radius: 50%; border: 3px solid; 
+            transform-style: preserve-3d; 
+            transition: border-color 1.2s cubic-bezier(0.165, 0.84, 0.44, 1); /* Yumuşak Renk Geçişi */
+        }
+        .miner-active .ring { animation: ring-rotate 15s linear infinite; }
+        .miner-active.coin-GC .ring { border-color: var(--primary-accent); }
+        .miner-active.coin-TON .ring { border-color: var(--green-accent); }
+        .miner-active.coin-USDT .ring { border-color: var(--red-accent); }
+        
+        /* Passive Rings (Slightly Slower Spin, Gray/White Border) */
+        .miner-core:not(.miner-active) .ring {
+            border-color: var(--passive-color);
+            animation: ring-rotate 30s linear infinite; 
+            opacity: 0.2;
+        }
+
+        @keyframes ring-rotate { 
+            from { transform: rotateX(70deg) rotateY(0deg); } 
+            to { transform: rotateX(70deg) rotateY(360deg); } 
+        }
+        
         .miner-pulse { animation: pulse 2.5s infinite ease-in-out; }
-        .ring { position: absolute; border-radius: 50%; border: 2px solid; transform-style: preserve-3d; animation: ring-rotate 10s linear infinite; }
-        .ring-1 { width: 100%; height: 100%; border-color: var(--primary-accent); }
-        .ring-2 { width: 80%; height: 80%; border-color: var(--primary-accent); opacity: 0.6; animation-direction: reverse; animation-duration: 8s; }
-        .ring-3 { width: 60%; height: 60%; border-color: var(--primary-accent); opacity: 0.3; animation-duration: 6s; }
+        @keyframes pulse {
+            0%, 100% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1); opacity: 1; }
+        }
         
-        @keyframes ring-rotate { from { transform: rotateX(70deg) rotateY(0deg); } to { transform: rotateX(70deg) rotateY(360deg); } }
-        
-        .miner-pulse { animation: pulse 2s infinite ease-in-out; }
-@keyframes pulse {
-            0%, 100% { box-shadow: 0 0 25px var(--primary-accent), 0 0 50px var(--primary-accent), inset 0 0 15px rgba(10, 132, 255, 0.5); }
-            50% { box-shadow: 0 0 35px var(--primary-accent), 0 0 70px var(--primary-accent), inset 0 0 20px rgba(10, 132, 255, 0.7); }
-            0%, 100% { transform: scale(0.95); opacity: 0.8; box-shadow: 0 0 20px var(--primary-accent), 0 0 40px var(--primary-accent); }
-            50% { transform: scale(1); opacity: 1; box-shadow: 0 0 30px var(--primary-accent), 0 0 60px var(--primary-accent); }
-}
-        
-        .miner-boosted .ring { border-color: var(--green-accent) !important; }
-        .miner-boosted .miner-pulse { box-shadow: 0 0 30px var(--green-accent), 0 0 60px var(--green-accent) !important; }
+        /* Boosted State (New green glow for the planet/core) */
+        .miner-boosted .miner-core { 
+            /* Boosted color will be applied ON TOP of the coin color */
+            filter: drop-shadow(0 0 10px var(--yellow-accent)); 
+        }
 
-        .miner-boosted .ring, .miner-boosted .miner-pulse { border-color: var(--green-accent) !important; }
-        .miner-boosted .miner-pulse { box-shadow: 0 0 35px var(--green-accent), 0 0 70px var(--green-accent), inset 0 0 20px rgba(48, 209, 88, 0.7) !important; }
-
-        .btn { transition: all 0.2s ease; transform: scale(1); user-select: none; }
+        /* Buttons and Elements */
+        .btn { transition: all 0.2s ease; user-select: none; }
         .btn:active { transform: scale(0.96); filter: brightness(1.15); }
         .btn:disabled { background-color: var(--component-bg) !important; color: var(--text-secondary) !important; cursor: not-allowed; opacity: 0.7; }
-        .btn { transition: all 0.2s ease; }
-        .btn:active { transform: scale(0.95); filter: brightness(1.2); }
-        .btn:disabled { background-color: var(--component-bg) !important; color: var(--text-secondary) !important; cursor: not-allowed; }
 
-        .progress-bar { background-color: var(--component-bg); overflow: hidden; transition: background-color 0.4s ease; border-radius: 9999px; }
+        /* Coin Selection Buttons */
+        .coin-select-btn {
+            width: 32px; /* Küçültüldü */
+            height: 32px; /* Küçültüldü */
+            border-radius: 50%; 
+            transition: all 0.3s ease;
+            filter: drop-shadow(0 1px 3px rgba(0,0,0,0.1));
+            border: 2px solid transparent; /* Border for active state */
+        }
+
+        .coin-select-btn:hover {
+            filter: drop-shadow(0 2px 5px rgba(0,0,0,0.2));
+        }
+
+        .coin-select-btn.active {
+            border-color: white; /* Active ring color */
+            box-shadow: 0 0 0 3px var(--primary-accent); /* Dynamic ring */
+            transform: scale(1.1); /* Hafif büyütme */
+        }
+        .coin-select-btn.coin-GC.active { box-shadow: 0 0 0 3px var(--primary-accent); }
+        .coin-select-btn.coin-TON.active { box-shadow: 0 0 0 3px var(--green-accent); }
+        .coin-select-btn.coin-USDT.active { box-shadow: 0 0 0 3px var(--red-accent); }
+
+
+        /* Progress Bar */
+        .progress-bar { background-color: var(--component-bg); overflow: hidden; border-radius: 9999px; }
         .progress-bar-fill { transition: width 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94); border-radius: 9999px; }
-        .progress-bar { background-color: var(--component-bg); overflow: hidden; transition: background-color 0.3s ease; }
-        .progress-bar-fill { transition: width 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
 
+        /* Toast Notifications */
         #toast-container { position: fixed; top: env(safe-area-inset-top, 20px); left: 50%; transform: translateX(-50%); z-index: 200; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
-        .toast { padding: 10px 20px; font-weight: 600; font-size: 14px; border-radius: 9999px; animation: toast-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .toast { padding: 12px 20px; font-weight: 600; font-size: 14px; border-radius: 9999px; animation: toast-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes toast-in { from { opacity: 0; transform: translateY(-20px) scale(0.9); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        
+        /* Floating Text for Staking */
+        .floating-text { position: absolute; bottom: 20px; right: 20px; font-weight: 700; font-size: 1rem; color: var(--indigo-accent); pointer-events: none; animation: float-up 2s ease-out forwards; }
+        @keyframes float-up { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-50px); } }
+
+        /* Modal */
         #modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
+            background-color: rgba(0,0,0,0.7); /* Darker overlay */
+            backdrop-filter: blur(12px);
             z-index: 100; display: none; opacity: 0; transition: opacity 0.3s ease;
         }
         #modal-overlay.show { display: flex; opacity: 1; }
         #modal-content { animation: modal-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-        
         @keyframes modal-in { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
         
-        #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 200; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
-        .toast { padding: 12px 20px; border-radius: 9999px; font-weight: 600; font-size: 14px; animation: toast-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .toast.dark-text { color: black; }
-        .toast.light-text { color: white; }
-@keyframes toast-in { from { opacity: 0; transform: translateY(-20px) scale(0.9); } to { opacity: 1; transform: translateY(0) scale(1); } }
-        .floating-text { position: absolute; bottom: 20px; right: 20px; font-weight: 700; font-size: 1rem; color: var(--indigo-accent); pointer-events: none; animation: float-up 2s ease-out forwards; }
-        @keyframes float-up { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-50px); } }
-
-        .reward-card { border: 2px dashed var(--border-color); transition: border-color 0.3s, background-color 0.3s, transform 0.2s ease; user-select: none; }
-        .reward-card.ready { border-style: solid; border-color: var(--yellow-accent); cursor: pointer; }
-        .reward-card.ready:hover { background-color: rgba(255, 214, 10, 0.1); }
-        .reward-card.ready:active { transform: scale(0.97); }
-
         /* Theme Toggle Switch */
-.toggle-switch { display: inline-block; position: relative; width: 50px; height: 30px; }
-.toggle-switch input { opacity: 0; width: 0; height: 0; }
-.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--component-bg); transition: .4s; border-radius: 34px; }
+        .toggle-switch { display: inline-block; position: relative; width: 50px; height: 30px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--component-bg); transition: .4s; border-radius: 34px; }
         .slider:before { position: absolute; content: ""; height: 22px; width: 22px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
-        input:checked + .slider { background-color: var(--green-accent); }
-        .slider:before { position: absolute; content: ""; height: 22px; width: 22px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: var(--primary-accent); }
-input:checked + .slider:before { transform: translateX(20px); }
-
-</style>
+        input:checked + .slider:before { transform: translateX(20px); }
+    </style>
 </head>
 <body class="w-full min-h-screen max-w-lg mx-auto flex flex-col antialiased pb-28">
-<body class="w-full min-h-screen max-w-lg mx-auto flex flex-col antialiased pb-24">
 
 <div id="toast-container"></div>
 
-    <header class="p-4 pt-6">
-        <div class="ios-panel flex justify-between items-center p-4">
+<!-- HEADER (COMPACTED) -->
+<header class="p-4 pt-6 flex-shrink-0">
+    <!-- Ana Bakiye ve Hız Göstergesi -->
+    <div class="ios-panel p-4">
+        <div class="flex justify-between items-center">
             <div>
-                <p class="text-sm font-medium" style="color: var(--text-secondary);">BAKİYE</p>
-                <p class="text-3xl font-bold tracking-tighter" id="earned-amount">0.00000000</p>
+                <!-- DİNAMİK BAKİYE BAŞLIĞI -->
+                <p class="text-sm font-medium" style="color: var(--text-secondary);" id="main-balance-label">GC BAKİYE</p>
+                <p class="text-3xl font-extrabold tracking-tighter" id="main-earned-amount">0.00000000</p>
             </div>
             <div class="text-right">
-                <p class="text-sm font-medium" style="color: var(--text-secondary);">GÜÇ</p>
-                <p class="text-lg font-semibold" id="earning-rate">0.00010 G/s</p>
-            </div>
-        </div>
-         <div id="prestige-panel" class="ios-panel flex justify-between items-center p-3 mt-3 hidden">
-            <div class="flex items-center gap-3">
-                 <svg class="w-6 h-6" style="color: var(--purple-accent);" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 5a3 3 0 013-3h8a3 3 0 013 3v8a3 3 0 01-3 3h-8a3 3 0 01-3-3V5zm3 0a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1V6a1 1 0 00-1-1H8z" clip-rule="evenodd" /></svg>
-                <div>
-                    <p class="text-sm font-bold" id="prestige-points">0 Veri Çekirdeği</p>
-                    <p class="text-xs" style="color: var(--text-secondary);" id="prestige-bonus">Kalıcı Bonus: +%0</p>
+                <p class="text-sm font-medium" style="color: var(--text-secondary);">ANLIK KAZIM HIZI</p>
+                <p class="text-xl font-semibold" id="earning-rate">0.00010 GMN/s</p>
+                <div id="usd-balance-panel" class="mt-1 text-xs" style="color: var(--text-secondary);">
+                    ~ <span id="usd-balance">0.00</span> USD
                 </div>
             </div>
-        </div>
-    </header>
-
-<main class="flex-grow p-4 space-y-4">
-        <!-- PAGE 1: MINER -->
-<div id="page-miner" class="page active">
-<div class="ios-panel p-6 text-center">
-                <div class="w-48 h-48 mx-auto my-6 flex items-center justify-center miner-container">
-                <div class="w-48 h-48 mx-auto my-6 flex items-center justify-center miner-core">
-<div class="relative w-full h-full flex items-center justify-center">
-                        <div id="miner-status-indicator" class="w-1/2 h-1/2 rounded-full flex items-center justify-center transition-all duration-500 miner-pulse z-10">
-                        <div class="ring ring-1"></div>
-                        <div class="ring ring-2"></div>
-                        <div class="ring ring-3"></div>
-                        <div id="miner-status-indicator" class="w-1/2 h-1/2 rounded-full flex items-center justify-center transition-all duration-500 miner-pulse">
-<svg class="w-3/4 h-3/4 text-white" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="48" stroke="currentColor" stroke-width="4"/><path d="M35 30 H65 M35 70 H65" stroke="currentColor" stroke-width="6" stroke-linecap="round"/><path d="M50 30 V70" stroke="currentColor" stroke-width="6" stroke-linecap="round"/></svg>
-</div>
-                        <div class="absolute w-full h-full miner-core">
-                            <div class="ring ring-1"></div><div class="ring ring-2"></div><div class="ring ring-3"></div>
-                        </div>
-</div>
-</div>
-                <div class="ios-panel p-4 rounded-xl mb-6">
-                    <p class="text-xs" style="color: var(--text-secondary);">OTURUM SÜRESİ</p>
-                    <p id="timer" class="font-bold text-2xl tracking-tight">24:00:00</p>
-                
-                <h2 class="text-5xl font-extrabold tracking-tighter" id="earned-amount">0.00000000</h2>
-                <p class="text-sm font-medium text-gray-400">GEMINI COIN</p>
-                
-                <div class="grid grid-cols-2 gap-4 my-6 text-left">
-                    <div class="ios-panel p-4 rounded-xl">
-                        <p class="text-xs text-gray-400">Oturum Süresi</p>
-                        <p id="timer" class="font-bold text-lg">24:00:00</p>
-                    </div>
-                     <div class="ios-panel p-4 rounded-xl">
-                        <p class="text-xs text-gray-400">Ağ Gücü</p>
-                        <p id="earning-rate" class="font-bold text-lg">0.00010 GMN/s</p>
-                    </div>
-</div>
-<div id="active-boost-status" class="hidden text-sm font-semibold text-center mb-4 p-2 rounded-lg" style="background-color: rgba(48, 209, 88, 0.2); color: var(--green-accent);"></div>
-                <button data-action="toggle-mining" class="btn w-full text-lg font-semibold py-4 rounded-2xl" style="background: var(--primary-accent); color: white;">Madenciliği Başlat</button>
-                <button id="mine-button" class="btn w-full text-lg font-semibold py-4 rounded-2xl" style="background: var(--primary-accent);">Madenciliği Başlat</button>
-</div>
-            <div id="daily-reward-container" class="mt-4"></div>
-            <button id="gemini-analysis-button" class="btn w-full text-lg font-semibold py-4 mt-4 rounded-2xl" style="background: var(--purple-accent);">✨ AI Piyasa Analizi</button>
-</div>
-
-        <!-- PAGE 2: UPGRADES -->
-<div id="page-upgrades" class="page">
-             <h1 class="text-3xl font-bold px-2 mb-4">Donanım Yükseltmeleri</h1>
-             <div id="upgrades-container" class="space-y-3"></div>
-             <h1 class="text-3xl font-bold px-2 mt-6 mb-4">Araştırma Laboratuvarı</h1>
-             <div id="research-container" class="space-y-3"></div>
-             <h1 class="text-3xl font-bold px-2">Yükseltmeler</h1>
-             <div id="upgrades-container" class="space-y-3 mt-4"></div>
-</div>
-
-        <!-- PAGE 3: BOOSTS -->
-<div id="page-boosts" class="page">
-             <h1 class="text-3xl font-bold px-2 mb-4">Güçlendirmeler</h1>
-             <div class="ios-panel p-6"><div id="boosts-container" class="space-y-4"></div></div>
-             <h1 class="text-3xl font-bold px-2">Güçlendirmeler</h1>
-             <div class="ios-panel p-6 mt-4"><div id="boosts-container" class="space-y-3"></div></div>
-</div>
-
-        <!-- PAGE 4: STAKING -->
-<div id="page-staking" class="page">
-            <h1 class="text-3xl font-bold px-2 mb-4">Likidite Havuzu</h1>
-            <div class="ios-panel p-6 text-center relative">
-                 <p class="text-sm font-medium" style="color: var(--text-secondary);">KİLİTLİ BAKİYE</p>
-                 <p id="staked-amount" class="text-4xl font-bold tracking-tight my-2">0.0000</p>
-                 <p class="text-xs" style="color: var(--text-secondary);">Yıllık Getiri Oranı (APY): <span id="staking-apy" class="font-semibold text-white">~15%</span></p>
-            <h1 class="text-3xl font-bold px-2">Likidite Havuzu</h1>
-            <div class="ios-panel p-6 mt-4 text-center relative">
-                 <div id="staking-reward-effect-container"></div>
-                 <p class="text-sm font-medium text-gray-400">Kilitli Bakiye</p>
-                 <p id="staked-amount" class="text-4xl font-bold tracking-tight">0.0000</p>
-                 <p class="text-xs text-gray-400 mt-2">Yıllık Getiri Oranı (APY): <span class="font-semibold text-white">~15%</span></p>
-</div>
-            <div class="ios-panel p-6 mt-4">
-                 <h2 class="font-semibold mb-3">Miktar Kilitle</h2>
-                 <div class="flex gap-2">
-                    <input type="number" id="stake-input" class="w-full bg-transparent text-white rounded-lg px-4 py-3 border-2" style="border-color: var(--component-bg);" placeholder="0.00">
-                    <button data-action="stake" class="btn font-bold py-3 px-6 rounded-lg text-sm" style="background: var(--indigo-accent); color: white;">KİLİTLE</button>
-                 </div>
-                 <button data-action="unstake" class="btn w-full font-bold py-3 rounded-lg text-sm mt-4" style="background: var(--red-accent); color: white;">TÜMÜNÜ ÇEK</button>
-             <div class="ios-panel p-6 mt-4">
-                 <h2 class="font-semibold mb-2">Miktar Kilitle</h2>
-                 <div class="flex gap-2"><input type="number" id="stake-input" class="w-full bg-transparent text-white rounded-lg px-3 py-3 border-2 border-gray-600 focus:border-indigo-500 focus:outline-none" placeholder="0.00"><button id="stake-button" class="btn bg-indigo-500 font-bold py-3 px-6 rounded-lg text-sm">Kilitle</button></div>
-                 <button id="unstake-button" class="btn bg-red-500 font-bold py-3 rounded-lg text-sm mt-4 w-full">Tümünü Çek</button>
-</div>
-</div>
-
-        
-        <!-- PAGE 5: STATS -->
-<div id="page-stats" class="page">
-             <h1 class="text-3xl font-bold px-2 mb-4">İstatistikler</h1>
-             <div id="stats-container" class="grid grid-cols-2 gap-4"></div>
-             <h1 class="text-3xl font-bold px-2">İstatistikler</h1>
-             <div id="stats-container" class="grid grid-cols-2 gap-4 mt-4"></div>
-</div>
-
-        
-        <!-- PAGE 6: SETTINGS -->
-<div id="page-settings" class="page">
-             <h1 class="text-3xl font-bold px-2 mb-4">Ayarlar</h1>
-             <div class="ios-panel p-6 space-y-5">
-             <h1 class="text-3xl font-bold px-2">Ayarlar</h1>
-             <div class="ios-panel p-6 mt-4">
-<div class="flex justify-between items-center">
-<span class="font-semibold">Arayüz Teması</span>
-                    <label class="toggle-switch"><input data-action="toggle-theme" type="checkbox" id="theme-toggle"><span class="slider"></span></label>
-                </div>
-                <div class="flex justify-between items-center">
-                    <span class="font-semibold">Ses Efektleri</span>
-                    <label class="toggle-switch"><input data-action="toggle-sound" type="checkbox" id="sound-toggle"><span class="slider"></span></label>
-                </div>
-                <div class="flex justify-between items-center">
-                    <span class="font-semibold">Titreşim (Haptik)</span>
-                    <label class="toggle-switch"><input data-action="toggle-haptics" type="checkbox" id="haptics-toggle"><span class="slider"></span></label>
-                </div>
-             </div>
-             <div id="prestige-reset-container" class="mt-6 hidden">
-                <h1 class="text-3xl font-bold px-2 mb-4">Protokol Sıfırlama</h1>
-                <div class="ios-panel p-6">
-                    <p class="text-center" style="color: var(--text-secondary);">İlerlemeni sıfırlayarak kalıcı bonuslar kazan. Bu işlem geri alınamaz.</p>
-                    <p class="text-center font-bold text-lg my-4">Kazanılacak: <span id="prestige-gain" style="color: var(--purple-accent);">0 Veri Çekirdeği</span></p>
-                    <button data-action="prestige-reset" class="btn w-full font-bold py-3 rounded-lg text-sm" style="background: var(--purple-accent); color: white;">Sıfırla ve Avantaj Kazan</button>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="theme-toggle">
-                        <span class="slider"></span>
-                    </label>
-</div>
-</div>
-</div>
-</main>
-
-    <nav class="bottom-nav ios-panel rounded-t-3xl p-2 fixed bottom-0 left-0 right-0 max-w-lg mx-auto">
-    <nav class="bottom-nav ios-panel rounded-t-2xl p-2 fixed bottom-0 left-0 right-0 max-w-lg mx-auto">
-<div class="flex justify-around">
-            <button data-action="navigate" data-page="miner" class="nav-button active p-2"><svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" /></svg></button>
-            <button data-action="navigate" data-page="upgrades" class="nav-button p-2"><svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM16 3a1 1 0 011 1v7.268a2 2 0 010 3.464V16a1 1 0 11-2 0v-1.268a2 2 0 010-3.464V4a1 1 0 011-1z" /></svg></button>
-            <button data-action="navigate" data-page="boosts" class="nav-button p-2"><svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clip-rule="evenodd" /></svg></button>
-            <button data-action="navigate" data-page="staking" class="nav-button p-2"><svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" /><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd" /></svg></button>
-            <button data-action="navigate" data-page="stats" class="nav-button p-2"><svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" /></svg></button>
-            <button data-action="navigate" data-page="settings" class="nav-button p-2"><svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.982.54 2.295 0 3.277-.836 1.372-.734-2.942-2.106 2.106a1.532 1.532 0 01-2.286.948c-.38 1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286-.948c-1.372-.836-2.942.734-2.106-2.106a1.532 1.532 0 010-3.277c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 012.286-.948zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg></button>
-            <button class="nav-button active p-2" data-page="miner">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" /></svg>
-            </button>
-            <button class="nav-button p-2" data-page="upgrades">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM16 3a1 1 0 011 1v7.268a2 2 0 010 3.464V16a1 1 0 11-2 0v-1.268a2 2 0 010-3.464V4a1 1 0 011-1z" /></svg>
-            </button>
-            <button class="nav-button p-2" data-page="boosts">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clip-rule="evenodd" /></svg>
-            </button>
-            <button class="nav-button p-2" data-page="staking">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" /><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd" /></svg>
-            </button>
-            <button class="nav-button p-2" data-page="stats">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" /></svg>
-            </button>
-            <button class="nav-button p-2" data-page="settings">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.982.54 2.295 0 3.277-1.372.836-.836 2.942 2.106 2.106a1.532 1.532 0 012.286.948c.38 1.56 2.6 1.56 2.98 0a1.532 1.532 0 012.286-.948c1.372.836 2.942-.734 2.106-2.106a1.532 1.532 0 010-3.277c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.286-.948zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>
-            </button>
-</div>
-</nav>
-    
-    <div id="modal-overlay" class="items-center justify-center p-4">
-        <div id="modal-content" class="ios-panel p-6 w-full max-w-md">
-             <h2 id="modal-title" class="text-2xl font-bold mb-4"></h2>
-             <p id="modal-text" class="text-gray-300"></p>
-             <button id="modal-close-button" class="btn w-full text-lg font-semibold py-3 mt-6 rounded-2xl" style="background: var(--primary-accent);">Kapat</button>
         </div>
     </div>
+</header>
+
+<!-- MAIN CONTENT AREA (FLEXIBLE TO FIT SCREEN) -->
+<div class="app-main-content">
+    <main class="flex-grow p-4 space-y-3 flex flex-col">
+        
+        <!-- PAGE 1: MINER (KAZIM) -->
+        <div id="page-miner" class="page active flex-shrink-0">
+            <div class="ios-panel p-6 text-center flex flex-col items-center justify-center flex-grow">
+                
+                <div class="flex items-center justify-center w-full">
+                    
+                    <!-- Miner Hologram & Status - CLICKABLE CORE -->
+                    <div class="w-48 h-48 my-4 flex items-center justify-center miner-container flex-shrink-0" id="miner-click-area">
+                        <div id="miner-core-el" class="relative w-full h-full flex items-center justify-center miner-core">
+                            <div id="miner-status-indicator" class="w-full h-full rounded-full flex items-center justify-center transition-all duration-500 miner-pulse">
+                                <div class="ring ring-1"></div>
+                                <div class="ring ring-2"></div>
+                                <div class="ring ring-3"></div>
+                                <!-- Central Energy Core Glow -->
+                                <div class="absolute w-1/4 h-1/4 rounded-full bg-white opacity-20 blur-lg z-20"></div>
+                                <!-- KÜÇÜK İKON KALDIRILDI -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- NEW: Mining Coin Selector Panel -->
+                    <div class="flex flex-col space-y-3 ml-4 p-2 ios-panel rounded-xl">
+                        
+                        <div class="coin-selector-panel flex items-center space-x-2">
+                            <button data-mine-type="GC" class="coin-select-btn coin-GC active flex-shrink-0" style="background-color: var(--primary-accent);"></button>
+                            <div class="text-left leading-tight">
+                                <p class="text-sm font-semibold">Gemini Coin (GC)</p>
+                                <p class="text-xs" style="color: var(--text-secondary);" id="rate-gc">0.00010 GC/s</p>
+                            </div>
+                        </div>
+
+                        <div class="coin-selector-panel flex items-center space-x-2">
+                            <button data-mine-type="TON" class="coin-select-btn coin-TON flex-shrink-0" style="background-color: var(--green-accent);"></button>
+                            <div class="text-left leading-tight">
+                                <p class="text-sm font-semibold">TON (TON)</p>
+                                <p class="text-xs" style="color: var(--text-secondary);" id="rate-ton">0.00005 TON/s</p>
+                            </div>
+                        </div>
+                        
+                        <div class="coin-selector-panel flex items-center space-x-2">
+                            <button data-mine-type="USDT" class="coin-select-btn coin-USDT flex-shrink-0" style="background-color: var(--red-accent);"></button>
+                            <div class="text-left leading-tight">
+                                <p class="text-sm font-semibold">USDT (USDT)</p>
+                                <p class="text-xs" style="color: var(--text-secondary);" id="rate-usdt">0.00008 USDT/s</p>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+                
+                <div id="active-boost-status" class="hidden text-sm font-semibold text-center mb-4 p-2 rounded-lg flex-shrink-0" style="background-color: rgba(48, 209, 88, 0.2); color: var(--green-accent);"></div>
+
+                <!-- Oturum Bilgileri (Compact) -->
+                <div class="grid grid-cols-2 gap-3 w-full text-left flex-shrink-0">
+                    <div class="ios-panel p-3">
+                        <p class="text-xs font-medium" style="color: var(--text-secondary);">SÜRE KALAN</p>
+                        <p id="timer" class="font-bold text-lg">24:00:00</p>
+                        <div class="w-full progress-bar h-1 mt-1"><div id="mining-progress-fill" class="progress-bar-fill h-1" style="width: 100%; background-color: var(--primary-accent);"></div></div>
+                    </div>
+                    <div class="ios-panel p-3">
+                        <p class="text-xs font-medium" style="color: var(--text-secondary);">TOPLAM GÜÇ</p>
+                        <p id="total-hash-power" class="font-bold text-lg">0.00010 GMN/s</p>
+                    </div>
+                </div>
+                
+                <!-- YENİ: TÜM BAKİYELERİ GÖSTEREN PANEL -->
+                <div id="all-balances-panel" class="grid grid-cols-4 gap-2 w-full text-left flex-shrink-0 mt-3">
+                    <div class="ios-panel p-2">
+                        <p class="text-xs font-medium text-center" style="color: var(--text-secondary);">GC</p>
+                        <p class="text-sm font-bold text-center" id="balance-gc">0.00</p>
+                    </div>
+                    <div class="ios-panel p-2">
+                        <p class="text-xs font-medium text-center" style="color: var(--text-secondary);">TON</p>
+                        <p class="text-sm font-bold text-center" id="balance-ton">0.00</p>
+                    </div>
+                    <div class="ios-panel p-2">
+                        <p class="text-xs font-medium text-center" style="color: var(--text-secondary);">USDT</p>
+                        <p class="text-sm font-bold text-center" id="balance-usdt">0.00</p>
+                    </div>
+                    <div class="ios-panel p-2">
+                        <p class="text-xs font-medium text-center" style="color: var(--text-secondary);">USD</p>
+                        <p class="text-sm font-bold text-center" id="balance-usd">0.00</p>
+                    </div>
+                </div>
+
+                <!-- AI Piyasa Analizi butonu kaldırıldı -->
+                <p id="miner-prompt-text" class="text-sm mt-3 flex-shrink-0" style="color: var(--text-secondary);">Madenciliği başlatmak için çekirdeğe dokunun.</p>
+            </div>
+        </div>
+
+        <!-- PAGE 2: MARKET (PİYASA) -->
+        <div id="page-market" class="page">
+            <h1 class="text-3xl font-bold px-2 mb-3">Gemini Coin Piyasası</h1>
+            <div class="ios-panel p-4 text-center flex flex-col">
+                <p class="text-sm font-medium" style="color: var(--text-secondary);">ANLIK FİYAT (USD)</p>
+                <p id="current-gc-price" class="text-4xl font-extrabold tracking-tighter my-1">0.1000</p>
+                <div id="market-trend" class="flex items-center justify-center text-md font-semibold" style="color: var(--market-up);">
+                    <svg id="trend-icon" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>
+                    <span id="trend-text">Stabil</span>
+                </div>
+                
+                <div class="mt-4 pt-3 border-t" style="border-color: var(--border-color);">
+                    <p class="text-sm font-medium mb-2" style="color: var(--text-secondary);">GC Al / Sat</p>
+                    <input type="number" id="market-input-amount" class="w-full rounded-xl px-4 py-3 border-2 text-center" style="border-color: var(--component-bg); background: var(--component-bg); color: var(--text-primary);" placeholder="Miktar (GC)">
+                    
+                    <div class="flex gap-4 mt-3">
+                        <button id="buy-gc-button" class="btn w-1/2 text-lg font-semibold py-3 rounded-xl" style="background: var(--green-accent); color: black;">AL</button>
+                        <button id="sell-gc-button" class="btn w-1/2 text-lg font-semibold py-3 rounded-xl" style="background: var(--red-accent); color: white;">SAT</button>
+                    </div>
+                    <p id="transaction-cost" class="text-xs mt-2" style="color: var(--text-secondary);">Tahmini Maliyet/Gelir: 0.00 USD</p>
+                </div>
+            </div>
+
+            <!-- NEW: Coin Converter -->
+            <div class="ios-panel p-4 mt-3 flex flex-col">
+                <h2 class="font-bold text-xl mb-3">Çapraz Dönüştürme</h2>
+                <div class="flex flex-col space-y-2">
+                    <div class="flex gap-2">
+                        <select id="convert-from-currency" class="w-1/3 rounded-xl px-2 py-3 border-2" style="border-color: var(--component-bg); background: var(--component-bg); color: var(--text-primary);">
+                            <option value="GC">GC</option>
+                            <option value="TON">TON</option>
+                            <option value="USDT">USDT</option>
+                        </select>
+                        <input type="number" id="convert-amount" class="w-2/3 rounded-xl px-4 py-3 border-2 text-center" style="border-color: var(--component-bg); background: var(--component-bg); color: var(--text-primary);" placeholder="Miktar">
+                    </div>
+                    
+                    <div class="flex justify-center my-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 10.293a1 1 0 010 1.414l-6 6a1 1 0 01-1.414 0l-6-6a1 1 0 111.414-1.414L9 14.586V3a1 1 0 112 0v11.586l4.293-4.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg></div>
+                    
+                    <select id="convert-to-currency" class="w-full rounded-xl px-4 py-3 border-2" style="border-color: var(--component-bg); background: var(--component-bg); color: var(--text-primary);">
+                        <option value="TON">TON</option>
+                        <option value="USDT">USDT</option>
+                        <option value="GC">GC</option>
+                    </select>
+                    <p id="conversion-result" class="text-sm mt-1" style="color: var(--text-secondary);">Tahmini Alınacak: 0.00</p>
+                    <button id="convert-button" class="btn w-full text-lg font-semibold py-3 rounded-xl mt-3" style="background: var(--indigo-accent); color: white;">Dönüştür</button>
+                </div>
+            </div>
+
+
+            <!-- NEW: Withdrawal Panel -->
+            <div class="ios-panel p-4 mt-3 flex flex-col">
+                <h2 class="font-bold text-xl mb-3">GC'yi Çek (USD Talep)</h2>
+                
+                <p class="text-xs mb-2" style="color: var(--text-secondary);">Minimum çekim miktarı: 500 GC. Ayrıca, 10 arkadaş davet etme zorunluluğu vardır.</p>
+
+                <input type="number" id="withdrawal-input-amount" class="w-full rounded-xl px-4 py-3 border-2 text-center" style="border-color: var(--component-bg); background: var(--component-bg); color: var(--text-primary);" placeholder="Çekilecek Miktar (GC)">
+                
+                <button id="request-withdrawal-button" class="btn w-full text-lg font-semibold py-3 rounded-xl mt-3" style="background: var(--primary-accent); color: white;">Çekim Talebi Ver</button>
+            </div>
+        </div>
+
+
+        <!-- PAGE 3: UPGRADES (YÜKSELTMELER) -->
+        <div id="page-upgrades" class="page">
+             <h1 class="text-3xl font-bold px-2 mb-3">Donanım Yükseltmeleri</h1>
+             <div id="upgrades-container" class="space-y-3"></div>
+             
+             <h1 class="text-3xl font-bold px-2 mt-6 mb-3">Güçlendirmeler (Boosts)</h1>
+             <div class="ios-panel p-4"><div id="boosts-container" class="space-y-3"></div></div>
+        </div>
+
+        <!-- PAGE 4: STAKING (KİLİTLEME) -->
+        <div id="page-staking" class="page">
+            <h1 class="text-3xl font-bold px-2 mb-3">Likidite Havuzu</h1>
+            
+            <div class="ios-panel p-4 text-center relative flex-shrink-0">
+                 <div id="staking-reward-effect-container" class="absolute inset-0 pointer-events-none"></div>
+                 <p class="text-sm font-medium" style="color: var(--text-secondary);">KİLİTLİ BAKİYE (GC)</p>
+                 <p id="staked-amount" class="text-4xl font-bold tracking-tight my-1">0.0000</p>
+                 <p class="text-xs" style="color: var(--text-secondary);">APY: <span class="font-semibold" style="color: var(--green-accent);">%15</span></p>
+            </div>
+
+            <div class="ios-panel p-4 mt-3 flex-shrink-0">
+                 <h2 class="font-semibold mb-2">Miktar Kilitle</h2>
+                 <div class="flex gap-2">
+                    <input type="number" id="stake-input" class="w-full rounded-xl px-4 py-3 border-2" style="border-color: var(--component-bg); background: var(--component-bg); color: var(--text-primary);" placeholder="0.00">
+                    <button id="stake-button" class="btn font-bold py-3 px-6 rounded-xl text-sm" style="background: var(--indigo-accent); color: white;">KİLİTLE</button>
+                 </div>
+                 <button id="unstake-button" class="btn w-full font-bold py-3 rounded-xl text-sm mt-3" style="background: var(--red-accent); color: white;">TÜMÜNÜ ÇEK</button>
+             </div>
+        </div>
+
+        <!-- PAGE 5: STATS (İSTATİSTİKLER) -->
+        <div id="page-stats" class="page">
+             <h1 class="text-3xl font-bold px-2 mb-3">İstatistikler</h1>
+             <div id="stats-container" class="grid grid-cols-2 gap-3"></div>
+        </div>
+
+        <!-- PAGE 6: SETTINGS (AYARLAR) -->
+        <div id="page-settings" class="page">
+             <h1 class="text-3xl font-bold px-2 mb-3">Ayarlar</h1>
+             <div class="ios-panel p-4 space-y-4">
+                <div class="flex justify-between items-center">
+                    <span class="font-semibold">Arayüz Teması</span>
+                    <label class="toggle-switch"><input type="checkbox" id="theme-toggle"><span class="slider"></span></label>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="font-semibold">AI Piyasa Analizi</span>
+                    <button id="gemini-analysis-button" class="btn font-bold py-2 px-4 rounded-xl text-sm" style="background: var(--purple-accent); color: white;">Analiz Oluştur</button>
+                </div>
+                <!-- Davet Sayısı -->
+                 <div class="flex justify-between items-center pt-4 border-t" style="border-color: var(--border-color);">
+                    <span class="font-semibold">Davet Edilen Arkadaş Sayısı</span>
+                    <div class="flex items-center space-x-2">
+                        <span id="invited-count" class="font-bold">0</span>
+                    </div>
+                </div>
+             </div>
+        </div>
+
+    </main>
+</div>
+
+<!-- Alt Navigasyon Çubuğu -->
+<nav class="bottom-nav ios-panel rounded-t-3xl p-2 fixed bottom-0 left-0 right-0 max-w-lg mx-auto flex-shrink-0">
+    <div class="flex justify-around">
+        <button data-page="miner" class="nav-button active p-2">
+            <!-- Miner Icon (Lightning) -->
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" /></svg>
+        </button>
+        <button data-page="market" class="nav-button p-2">
+            <!-- Market Icon (Currency) -->
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" /></svg>
+        </button>
+        <button data-page="upgrades" class="nav-button p-2">
+            <!-- Upgrades Icon (Tool/Config) -->
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM16 3a1 1 0 011 1v7.268a2 2 0 010 3.464V16a1 1 0 11-2 0v-1.268a2 2 0 010-3.464V4a1 1 0 011-1z" /></svg>
+        </button>
+        <button data-page="staking" class="nav-button p-2">
+            <!-- Staking Icon (Wallet/Deposit) -->
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" /><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd" /></svg>
+        </button>
+        <button data-page="stats" class="nav-button p-2">
+            <!-- Stats Icon (Chart) -->
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" /></svg>
+        </button>
+        <button data-page="settings" class="nav-button p-2">
+            <!-- Settings Icon (Cog - YENİ İKON) -->
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.982.54 2.295 0 3.277-.836 1.372-.734 2.942-2.106 2.106a1.532 1.532 0 01-2.286.948c-.38 1.56-2.6 1.56-2.98 0a1.532 1.532 0 01-2.286-.948c-1.372-.836-2.942.734-2.106-2.106a1.532 1.532 0 010-3.277c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 012.286-.948zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>
+        </button>
+    </div>
+</nav>
+
+<!-- Modal Overlay for AI Analysis and Alerts -->
+<div id="modal-overlay" class="items-center justify-center p-4">
+    <div id="modal-content" class="ios-panel p-6 w-full max-w-md">
+         <h2 id="modal-title" class="text-2xl font-bold mb-4"></h2>
+         <p id="modal-text" class="text-gray-600" style="color: var(--text-secondary);"></p>
+         <button id="modal-close-button" class="btn w-full text-lg font-semibold py-3 mt-6 rounded-2xl" style="background: var(--primary-accent); color: white;">Kapat</button>
+    </div>
+</div>
 
 
 <script>
-        // --- THIS IS THE FULLY REWRITTEN, 100% FUNCTIONAL JAVASCRIPT LOGIC ---
-        document.addEventListener('DOMContentLoaded', async () => {
-            // ... (The full, unabridged, and functional JavaScript code is placed here)
-        document.addEventListener('DOMContentLoaded', () => {
-            const el = (id) => document.getElementById(id);
+    // Global Elements Accessor
+    const el = (id) => document.getElementById(id);
 
-            const elements = {
-                pages: document.querySelectorAll('.page'),
-                navButtons: document.querySelectorAll('.nav-button'),
-                earnedAmountEl: el('earned-amount'),
-                timerEl: el('timer'),
-                earningRateEl: el('earning-rate'),
-                mineButton: el('mine-button'),
-                minerStatusIndicator: el('miner-status-indicator'),
-                activeBoostStatus: el('active-boost-status'),
-                geminiButton: el('gemini-analysis-button'),
-                upgradesContainer: el('upgrades-container'),
-                boostsContainer: el('boosts-container'),
-                stakedAmountEl: el('staked-amount'),
-                stakeInput: el('stake-input'),
-                stakeButton: el('stake-button'),
-                unstakeButton: el('unstake-button'),
-                stakingRewardEffectContainer: el('staking-reward-effect-container'),
-                statsContainer: el('stats-container'),
-                themeToggle: el('theme-toggle'),
-                modalOverlay: el('modal-overlay'),
-                modalTitle: el('modal-title'),
-                modalText: el('modal-text'),
-                modalCloseButton: el('modal-close-button'),
-                toastContainer: el('toast-container'),
-            };
+    // --- Configuration ---
+    const MINING_BASE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 Hours
+    const STAKING_APY = 0.15; // 15% Annual Percentage Yield
+    const SAVE_INTERVAL_MS = 3000;
+    const MARKET_UPDATE_INTERVAL_MS = 5000;
+    const MIN_WITHDRAWAL_GC = 500.0;
+    const REQUIRED_INVITES = 10;
+    const API_KEY = ""; // Gemini API key for analysis feature
 
-            const MINING_BASE_DURATION_MS = 24 * 60 * 60 * 1000;
-            const STAKING_APY = 0.15;
-            const SAVE_INTERVAL_MS = 3000;
+    // NEW: Multi-Coin Mining Rates (GC Rate is Base Rate * Price)
+    const BASE_MINING_RATES = {
+        GC: 0.00010, // Base rate for Gemini Coin (GC)
+        TON: 0.00005, // Base rate for TON Sim
+        USDT: 0.00008, // Base rate for USDT Sim
+    };
 
-            const UPGRADE_CONFIG = {
-                core: { name: "İşlemci Çekirdeği", desc: "Temel kazım oranını artırır.", baseCost: 0.1, costMultiplier: 1.8, baseRate: 0.0001, rateMultiplier: 1.7, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M12 6V4m0 16v-2M12 12l-2 2-2-2m4 4l2-2 2 2" /></svg>`},
-                cooling: { name: "Soğutma Sistemi", desc: "Verimliliği artırarak kazancı çoğaltır.", baseCost: 0.5, costMultiplier: 2.2, baseMultiplier: 1.0, multiplierBonus: 0.1, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>` },
-                battery: { name: "Batarya Kapasitesi", desc: "Oturum süresini uzatır.", baseCost: 1, costMultiplier: 3, baseDuration: MINING_BASE_DURATION_MS, durationBonus: 2 * 3600 * 1000, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>`},
-            };
+    const UPGRADE_CONFIG = {
+        core: { name: "İşlemci Çekirdeği", desc: "Temel kazım oranını artırır.", baseCost: 0.1, costMultiplier: 1.8, baseRate: BASE_MINING_RATES.GC, rateMultiplier: 1.7, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M12 6V4m0 16v-2M12 12l-2 2-2-2m4 4l2-2 2 2" /></svg>`},
+        cooling: { name: "Soğutma Sistemi", desc: "Verimliliği artırarak kazancı çoğaltır.", baseCost: 0.5, costMultiplier: 2.2, baseMultiplier: 1.0, multiplierBonus: 0.1, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>` },
+        battery: { name: "Batarya Kapasitesi", desc: "Oturum süresini uzatır.", baseCost: 1.0, costMultiplier: 3.0, durationBonus: 2 * 3600 * 1000, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>`},
+    };
+    
+    const BOOST_CONFIG = [
+        { id: 'boost1', duration: 10 * 60 * 1000, multiplier: 2, cost: 0.2, label: '10 Dakika x2 Güç', desc: "Kazım hızını 10 dakika boyunca ikiye katla." },
+        { id: 'boost2', duration: 30 * 60 * 1000, multiplier: 3, cost: 1.0, label: '30 Dakika x3 Güç', desc: "Kazım hızını 30 dakika boyunca üçe katla."},
+    ];
+
+    // --- State Management ---
+    let state = {};
+    const defaultState = {
+        totalEarned: 0.0, // GC
+        totalTON: 0.0,    // NEW: TON Simülasyonu
+        totalUSDT: 0.0,   // NEW: USDT Simülasyonu
+        
+        usdBalance: 0.00, 
+        gcPrice: 0.1000, // 1 GC = $0.10
+        tonPrice: 2.5000, // 1 TON = $2.50
+        usdtPrice: 1.0000, // 1 USDT = $1.00 (Stabil olması beklenir)
+
+        miningStartTime: null, 
+        lastUpdateTimestamp: Date.now(),
+        upgradeLevels: { core: 0, cooling: 0, battery: 0 },
+        stakedAmount: 0.0,
+        activeBoost: { type: null, endTime: 0 },
+        settings: { theme: 'light' }, 
+        stats: { totalMined: 0, totalStaked: 0, boostsUsed: 0, upgradesPurchased: 0, marketBuys: 0, marketSells: 0 },
+        friendsInvited: 0,
+        withdrawalRequests: 0,
+        currentMineType: 'GC' // NEW: Hangi coinin kazıldığını tutar
+    };
+    
+    // NEW: Bakiye güncelleme hızını kontrol etmek için global değişken
+    let lastBalanceUpdateUI = Date.now(); 
+    const BALANCE_UI_UPDATE_THROTTLE = 3000; // 3 saniye
+
+    const saveState = () => localStorage.setItem('geminiMinerState', JSON.stringify(state));
+    const loadState = () => {
+        state = { ...defaultState };
+        const saved = localStorage.getItem('geminiMinerState');
+        if (saved) {
+           const savedState = JSON.parse(saved);
+           // Merge saved state with defaults to ensure all keys exist
+           state = { 
+               ...defaultState, 
+               ...savedState, 
+               upgradeLevels: { ...defaultState.upgradeLevels, ...(savedState.upgradeLevels || {}) },
+               activeBoost: { ...defaultState.activeBoost, ...(savedState.activeBoost || {}) },
+               settings: { ...defaultState.settings, ...(savedState.settings || {}) },
+               stats: { ...defaultState.stats, ...(savedState.stats || {}) },
+               
+               friendsInvited: savedState.friendsInvited || 0, 
+               withdrawalRequests: savedState.withdrawalRequests || 0,
+               usdBalance: savedState.usdBalance > 0 ? savedState.usdBalance : defaultState.usdBalance,
+
+               // NEW: Yeni bakiyeleri koru, yoksa 0.0 al
+               totalTON: savedState.totalTON || 0.0,
+               totalUSDT: savedState.totalUSDT || 0.0,
+               
+               // NEW: Fiyatları yükle veya varsayılan al
+               gcPrice: savedState.gcPrice || defaultState.gcPrice,
+               tonPrice: savedState.tonPrice || defaultState.tonPrice,
+               usdtPrice: savedState.usdtPrice || defaultState.usdtPrice,
+               currentMineType: savedState.currentMineType || 'GC',
+           };
+        }
+    };
+
+    // --- Utility Functions ---
+    const formatTime = (ms) => { 
+        if (ms < 0) ms = 0; 
+        const s = Math.floor(ms / 1000); 
+        return `${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor(s%3600/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; 
+    };
+    
+    // NEW: Get the balance of a given currency
+    const getBalance = (currency) => {
+        switch(currency) {
+            case 'GC': return state.totalEarned;
+            case 'TON': return state.totalTON;
+            case 'USDT': return state.totalUSDT;
+            case 'USD': return state.usdBalance; // USD bakiyesini de ekle
+            default: return 0.0;
+        }
+    }
+    
+    // NEW: Deduct amount from a given currency
+    const deductBalance = (currency, amount) => {
+        switch(currency) {
+            case 'GC': state.totalEarned -= amount; break;
+            case 'TON': state.totalTON -= amount; break;
+            case 'USDT': state.totalUSDT -= amount; break;
+            case 'USD': state.usdBalance -= amount; break;
+        }
+    }
+
+    // NEW: Add amount to a given currency
+    const addBalance = (currency, amount) => {
+        switch(currency) {
+            case 'GC': state.totalEarned += amount; break;
+            case 'TON': state.totalTON += amount; break;
+            case 'USDT': state.totalUSDT += amount; break;
+            case 'USD': state.usdBalance += amount; break;
+        }
+    }
+    
+    // NEW: Get USD value of a currency
+    const getPrice = (currency) => {
+        switch(currency) {
+            case 'GC': return state.gcPrice;
+            case 'TON': return state.tonPrice;
+            case 'USDT': return state.usdtPrice;
+            case 'USD': return 1.0; // USD'nin fiyatı $1'dır.
+            default: return 0.0;
+        }
+    }
+
+    const calculate = {
+        upgradeCost: (type, level) => UPGRADE_CONFIG[type].baseCost * Math.pow(UPGRADE_CONFIG[type].costMultiplier, level),
+        miningRate: () => {
+            const coreLevel = state.upgradeLevels.core; const coolingLevel = state.upgradeLevels.cooling;
             
-            const BOOST_CONFIG = [
-                { id: 'boost1', duration: 10 * 60 * 1000, multiplier: 2, cost: 0.2, label: '10 Dakika x2 Güç', desc: "Kazım hızını 10 dakika boyunca ikiye katla." },
-                { id: 'boost2', duration: 30 * 60 * 1000, multiplier: 3, cost: 1.0, label: '30 Dakika x3 Güç', desc: "Kazım hızını 30 dakika boyunca üçe katla."},
-            ];
-
-            let state = {};
-            const defaultState = {
-                totalEarned: 0.0,
-                miningStartTime: null,
-                lastUpdateTimestamp: Date.now(),
-                upgradeLevels: { core: 0, cooling: 0, battery: 0 },
-                stakedAmount: 0.0,
-                activeBoost: { type: null, endTime: 0 },
-                settings: {
-                    theme: 'dark'
-                },
-                stats: {
-                    totalMined: 0,
-                    totalStaked: 0,
-                    boostsUsed: 0,
-                    upgradesPurchased: 0
-                }
-            };
+            // Core'un temel rate'ini al (GC rate'ini kullanıyoruz, diğerleri için çarpım yapacağız)
+            let baseRate = UPGRADE_CONFIG.core.baseRate * Math.pow(UPGRADE_CONFIG.core.rateMultiplier, coreLevel);
+            const coolingMultiplier = UPGRADE_CONFIG.cooling.baseMultiplier + (coolingLevel * UPGRADE_CONFIG.cooling.multiplierBonus);
             
-            const saveState = () => localStorage.setItem('geminiMinerStateV5', JSON.stringify(state));
-            const loadState = () => {
-                state = { ...defaultState };
-                const saved = localStorage.getItem('geminiMinerStateV5');
-                if (saved) {
-                   const savedState = JSON.parse(saved);
-                   state = { ...state, ...savedState };
-                   state.upgradeLevels = { ...defaultState.upgradeLevels, ...(savedState.upgradeLevels || {}) };
-                   state.activeBoost = { ...defaultState.activeBoost, ...(savedState.activeBoost || {}) };
-                   state.settings = { ...defaultState.settings, ...(savedState.settings || {}) };
-                   state.stats = { ...defaultState.stats, ...(savedState.stats || {}) };
-                }
-            };
+            const boost = BOOST_CONFIG.find(b => b.id === state.activeBoost.type);
+            const isBoostActive = state.activeBoost.endTime > Date.now() && boost;
+            const boostMultiplier = isBoostActive ? boost.multiplier : 1;
             
-            const applyTheme = (theme) => {
-                document.documentElement.setAttribute('data-theme', theme);
-                elements.themeToggle.checked = theme === 'dark';
-            };
-
-            elements.themeToggle.addEventListener('change', () => {
-                const newTheme = elements.themeToggle.checked ? 'dark' : 'light';
-                state.settings.theme = newTheme;
-                applyTheme(newTheme);
-            });
-
-            const showToast = (message, type = 'success') => {
-                const toast = document.createElement('div');
-                toast.textContent = message;
-                const isDark = state.settings.theme === 'dark';
-                toast.className = `toast ${isDark ? 'dark-text' : 'light-text'}`;
-                const color = type === 'success' ? 'var(--green-accent)' : type === 'error' ? 'var(--red-accent)' : 'var(--primary-accent)';
-                toast.style.backgroundColor = color;
-                if(type === 'success' && !isDark) toast.classList.add('light-text');
-                else toast.classList.add('dark-text');
-
-
-                elements.toastContainer.appendChild(toast);
-                setTimeout(() => {
-                    toast.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-                    toast.style.opacity = '0';
-                    toast.style.transform = 'translateY(-20px)';
-                    setTimeout(() => toast.remove(), 300);
-                }, 3000);
-            };
-
-            const createFloatingText = (text, container) => {
-                const el = document.createElement('div');
-                el.className = 'floating-text';
-                el.textContent = text;
-                container.appendChild(el);
-                setTimeout(() => el.remove(), 2000);
-            };
-
-            const formatTime = (ms) => { if (ms < 0) ms = 0; const s = Math.floor(ms / 1000); return `${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor(s%3600/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; };
+            let effectiveRate = baseRate * coolingMultiplier * boostMultiplier;
             
-            const calculate = {
-                upgradeCost: (type, level) => UPGRADE_CONFIG[type].baseCost * Math.pow(UPGRADE_CONFIG[type].costMultiplier, level),
-                miningRate: () => {
-                    const coreLevel = state.upgradeLevels.core; const coolingLevel = state.upgradeLevels.cooling;
-                    const baseRate = UPGRADE_CONFIG.core.baseRate * Math.pow(UPGRADE_CONFIG.core.rateMultiplier, coreLevel);
-                    const coolingMultiplier = UPGRADE_CONFIG.cooling.baseMultiplier + (coolingLevel * UPGRADE_CONFIG.cooling.multiplierBonus);
-                    const boost = BOOST_CONFIG.find(b => b.id === state.activeBoost.type);
-                    const boostMultiplier = (state.activeBoost.endTime > Date.now() && boost) ? boost.multiplier : 1;
-                    return baseRate * coolingMultiplier * boostMultiplier;
-                },
-                sessionDuration: () => UPGRADE_CONFIG.battery.baseDuration + (state.upgradeLevels.battery * UPGRADE_CONFIG.battery.durationBonus),
-            };
-            
-            const animateValue = (obj, start, end, duration) => {
-                let startTimestamp = null;
-                const step = (timestamp) => {
-                    if (!startTimestamp) startTimestamp = timestamp;
-                    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-                    const value = progress * (end - start) + start;
-                    obj.textContent = value.toFixed(8);
-                    if (progress < 1) { window.requestAnimationFrame(step); }
-                };
-                window.requestAnimationFrame(step);
+            // Eğer GC kazmıyorsak, Base Rate'i o coinin kendi Base Mining Rate'inden al
+            if (state.currentMineType !== 'GC') {
+                effectiveRate = BASE_MINING_RATES[state.currentMineType] * coolingMultiplier * boostMultiplier;
             }
 
-            const renderUpgradesUI = () => {
-                elements.upgradesContainer.innerHTML = '';
-                Object.keys(UPGRADE_CONFIG).forEach(key => {
-                    const config = UPGRADE_CONFIG[key]; const level = state.upgradeLevels[key];
-                    const cost = calculate.upgradeCost(key, level); const canAfford = state.totalEarned >= cost;
-                    const progress = Math.min((state.totalEarned / cost) * 100, 100);
-                    const template = `
-                        <div class="ios-panel p-4">
-                            <div class="flex items-center gap-4">
-                                <div class="w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-lg" style="background-color: var(--yellow-accent); color: #000;">${config.icon}</div>
-                                <div>
-                                    <h3 class="font-bold text-lg">${config.name} <span class="text-sm text-gray-400">Lv. ${level + 1}</span></h3>
-                                    <p class="text-xs text-gray-400">${config.desc}</p>
-                                </div>
-                            </div>
-                            <div class="mt-4 space-y-2">
-                                <div class="w-full progress-bar rounded-full h-2"><div class="progress-bar-fill h-2 rounded-full" style="width: ${progress}%; background-color: var(--yellow-accent);"></div></div>
-                                <button data-upgrade-type="${key}" class="btn upgrade-button w-full font-semibold py-3 rounded-lg" style="background-color: ${canAfford ? 'var(--yellow-accent)' : 'var(--component-bg)'}; color: #000;" ${canAfford ? '' : 'disabled'}>
-                                    Yükselt (${cost.toFixed(4)} GMN)
-                                </button>
-                            </div>
-                        </div>`;
-                    elements.upgradesContainer.innerHTML += template;
-                });
-                document.querySelectorAll('.upgrade-button').forEach(btn => btn.addEventListener('click', purchaseUpgrade));
-            };
+            return effectiveRate;
+        },
+        sessionDuration: () => MINING_BASE_DURATION_MS + (state.upgradeLevels.battery * UPGRADE_CONFIG.battery.durationBonus),
+    };
+
+    const showToast = (message, type = 'primary') => {
+        const toast = document.createElement('div');
+        toast.textContent = message;
+        const isDark = state.settings.theme === 'dark';
+        let bgColor = ''; let textColor = isDark ? 'white' : 'black';
+
+        switch(type) {
+            case 'success': bgColor = 'var(--green-accent)'; textColor = 'black'; break;
+            case 'error': bgColor = 'var(--red-accent)'; textColor = 'white'; break;
+            case 'info': bgColor = 'var(--indigo-accent)'; textColor = 'white'; break;
+            case 'primary': 
+            default: bgColor = 'var(--primary-accent)'; textColor = 'white';
+        }
+        
+        // Light theme check for toast text color
+        if (!isDark && (type === 'success' || type === 'primary')) {
+             textColor = 'black';
+        } else if (!isDark && type === 'error') {
+             textColor = 'white'; // Red background needs white text
+        }
+
+
+        toast.style.backgroundColor = bgColor;
+        toast.style.color = textColor;
+        toast.className = `toast`;
+
+        el('toast-container').appendChild(toast);
+        setTimeout(() => {
+            toast.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(-20px)';
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
+    };
+
+    const createFloatingText = (text, container) => {
+        const floatingEl = document.createElement('div');
+        floatingEl.className = 'floating-text';
+        floatingEl.textContent = text;
+        container.appendChild(floatingEl);
+        setTimeout(() => floatingEl.remove(), 2000);
+    };
+    
+    const showModal = (title, text, loading = false) => {
+        el('modal-title').textContent = title;
+        el('modal-text').innerHTML = loading ? `<div class="flex items-center justify-center space-x-2"><div class="animate-spin rounded-full h-5 w-5 border-b-2" style="border-color: var(--primary-accent)"></div><span style="color: var(--text-primary)">Analiz yükleniyor...</span></div>` : text;
+        el('modal-close-button').disabled = loading;
+        el('modal-overlay').classList.add('show');
+    };
+
+    const applyTheme = (theme) => {
+        document.documentElement.setAttribute('data-theme', theme);
+        el('theme-toggle').checked = theme === 'dark';
+    };
+
+    // --- Market Logic ---
+    const updateMarketPrice = () => {
+        const updateCoinPrice = (coinKey, min, max, basePrice) => {
+            const currentPrice = state[coinKey];
+            const maxDelta = basePrice * 0.05; // %5 dalgalanma
+            const randomFactor = (Math.random() * maxDelta * 2) - maxDelta;
+            let newPrice = currentPrice + randomFactor;
+
+            newPrice = Math.max(min, Math.min(max, newPrice));
+            state[coinKey] = newPrice;
+            return newPrice;
+        };
+
+        // GC fiyatını güncelle
+        updateCoinPrice('gcPrice', 0.05, 0.20, defaultState.gcPrice); 
+        
+        // TON fiyatını güncelle (daha büyük dalgalanma)
+        updateCoinPrice('tonPrice', 2.00, 3.50, defaultState.tonPrice); 
+
+        // USDT fiyatı stabil kalsın (çok az dalgalanma)
+        updateCoinPrice('usdtPrice', 0.99, 1.01, defaultState.usdtPrice); 
+
+        // UI Güncelleme (Sadece GC fiyatını gösteriyoruz)
+        const priceEl = el('current-gc-price');
+        
+        // Trend Kontrolü (GC üzerinden)
+        const currentGCPrice = state.gcPrice;
+        const trend = currentGCPrice >= defaultState.gcPrice ? 'up' : 'down';
+        const trendIcon = currentGCPrice >= defaultState.gcPrice 
+            ? `<svg class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 17l-5-5h10l-5 5z" transform="rotate(180 10 10)"/></svg>` 
+            : `<svg class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 17l-5-5h10l-5 5z"/></svg>`;
+        
+        const trendText = currentGCPrice === defaultState.gcPrice ? 'Stabil' : (currentGCPrice > defaultState.gcPrice ? 'Yükseliş' : 'Düşüş');
+        const trendColor = currentGCPrice === defaultState.gcPrice ? 'var(--text-secondary)' : (currentGCPrice > defaultState.gcPrice ? 'var(--market-up)' : 'var(--market-down)');
+        
+        priceEl.textContent = currentGCPrice.toFixed(4);
+        
+        const trendEl = el('market-trend');
+        trendEl.style.color = trendColor;
+        el('trend-icon').innerHTML = trendIcon;
+        el('trend-text').textContent = trendText;
+    };
+
+
+    // --- Rendering and UI Logic ---
+    
+    // NEW: Base Rate Render Logic
+    const renderBaseRates = () => {
+        el('rate-gc').textContent = `${BASE_MINING_RATES.GC.toFixed(5)} GC/s`;
+        el('rate-ton').textContent = `${BASE_MINING_RATES.TON.toFixed(5)} TON/s`;
+        el('rate-usdt').textContent = `${BASE_MINING_RATES.USDT.toFixed(5)} USDT/s`;
+    };
+
+    const renderUpgradesUI = () => {
+        const container = el('upgrades-container');
+        container.innerHTML = '';
+        Object.keys(UPGRADE_CONFIG).forEach(key => {
+            const config = UPGRADE_CONFIG[key]; 
+            const level = state.upgradeLevels[key];
+            const cost = calculate.upgradeCost(key, level); 
+            const costUSD = cost * state.gcPrice; // Tüm yükseltmeler GC fiyatı üzerinden hesaplanır
             
-            const renderBoostsUI = () => {
-                elements.boostsContainer.innerHTML = '';
-                BOOST_CONFIG.forEach(boost => {
-                    const canAfford = state.totalEarned >= boost.cost;
-                    const isBoostActive = state.activeBoost.endTime > Date.now();
-                    const template = `
+            const canAffordGC = state.totalEarned >= cost;
+            const canAffordUSD = state.usdBalance >= costUSD;
+
+            const progress = Math.min((state.totalEarned / cost) * 100, 100);
+            
+            let effectDesc = '';
+            // Efekt açıklaması GC'nin base rate'ini kullanır, tüm kazım tiplerine uygulanır.
+            if (key === 'core') effectDesc = `Kazım Hızı: +${(config.baseRate * Math.pow(config.rateMultiplier, level + 1)).toFixed(6)} GC/s`;
+            if (key === 'cooling') effectDesc = `Verimlilik: x${(config.baseMultiplier + (level + 1) * config.multiplierBonus).toFixed(1)}`;
+            if (key === 'battery') effectDesc = `Süre: ${formatTime(config.durationBonus * (level + 1))}+`;
+
+
+            const template = `
+                <div class="ios-panel p-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-lg" style="background-color: var(--yellow-accent); color: #000;">${config.icon}</div>
                         <div>
-                            <h3 class="font-bold text-lg">${boost.label}</h3>
-                            <p class="text-sm text-gray-400 mb-3">${boost.desc}</p>
-                            <button data-boost-id="${boost.id}" class="btn boost-button w-full font-semibold py-3 rounded-lg" style="background: var(--green-accent); color: #000;" ${canAfford && !isBoostActive ? '' : 'disabled'}>
-                                Etkinleştir (${boost.cost.toFixed(2)} GMN)
-                            </button>
-                        </div>`;
-                    elements.boostsContainer.innerHTML += template;
-                });
-                document.querySelectorAll('.boost-button').forEach(btn => btn.addEventListener('click', purchaseBoost));
-            };
-
-            const renderStatsUI = () => {
-                const statsData = [
-                    { label: 'Toplam Kazım', value: state.stats.totalMined.toFixed(6) + ' GMN' },
-                    { label: 'Toplam Staking Geliri', value: state.stats.totalStaked.toFixed(6) + ' GMN' },
-                    { label: 'Kullanılan Güçlendirme', value: state.stats.boostsUsed },
-                    { label: 'Yapılan Yükseltme', value: state.stats.upgradesPurchased },
-                ];
-                elements.statsContainer.innerHTML = statsData.map(stat => `
-                    <div class="ios-panel p-4">
-                        <p class="text-xs text-gray-400">${stat.label}</p>
-                        <p class="font-bold text-2xl">${stat.value}</p>
+                            <h3 class="font-bold text-base">${config.name} <span class="text-xs" style="color: var(--text-secondary);">Lv. ${level + 1}</span></h3>
+                            <p class="text-xs font-semibold" style="color: var(--primary-accent);">${effectDesc}</p>
+                        </div>
                     </div>
-                `).join('');
-            };
+                    <div class="mt-3 space-y-1">
+                        <div class="w-full progress-bar h-1.5"><div class="progress-bar-fill h-1.5" style="width: ${progress}%; background-color: var(--yellow-accent);"></div></div>
+                        
+                        <!-- PAYMENT OPTION 1: GEMINI COIN (GC) -->
+                        <button data-upgrade-type="${key}" data-currency="GC" class="btn upgrade-button w-full font-semibold py-2 rounded-xl text-sm" 
+                            style="background-color: ${canAffordGC ? 'var(--yellow-accent)' : 'var(--component-bg)'}; color: ${canAffordGC ? 'black' : 'var(--text-secondary)'};" ${canAffordGC ? '' : 'disabled'}>
+                            Yükselt (${cost.toFixed(4)} GC)
+                        </button>
 
-            const updateDashboardUI = () => {
-                const isMining = !!state.miningStartTime;
-                elements.mineButton.textContent = isMining ? 'Oturum Aktif' : 'Madenciliği Başlat';
-                elements.mineButton.disabled = isMining;
-                elements.minerStatusIndicator.classList.toggle('bg-gray-700', !isMining);
-                elements.minerStatusIndicator.classList.toggle('bg-sky-500/20', isMining);
-                
-                const isBoosted = state.activeBoost.endTime > Date.now();
-                elements.minerStatusIndicator.parentElement.parentElement.classList.toggle('miner-boosted', isBoosted);
-                if(isBoosted){
-                    elements.activeBoostStatus.classList.remove('hidden');
-                    elements.activeBoostStatus.textContent = `Güçlendirme Aktif: ${formatTime(state.activeBoost.endTime - Date.now())}`;
-                } else {
-                    elements.activeBoostStatus.classList.add('hidden');
-                }
-            };
+                        <!-- PAYMENT OPTION 2: SIMULATED TELEGRAM WALLET (USD) -->
+                        <button data-upgrade-type="${key}" data-currency="USD" class="btn telegram-pay-button w-full font-semibold py-2 rounded-xl text-sm mt-1" 
+                            style="background-color: ${canAffordUSD ? 'var(--indigo-accent)' : 'var(--component-bg)'}; color: ${canAffordUSD ? 'white' : 'var(--text-secondary)'};" ${canAffordUSD ? '' : 'disabled'}>
+                            <div class="flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 mr-1">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.35 6.49l-1.92 8.79c-.11.5-.47.65-.89.44l-3.35-2.47-1.62 1.57c-.18.18-.34.34-.65.34l.23-3.41L14.72 7.8c.2-.18-.04-.28-.3-.08L7.9 13.56l-3.23-.97c-.47-.15-.65-.47-.5-.92L5.85 5.6c.15-.45.47-.65.92-.5L18.42 7.7c.45.15.65.47.5.92z"/>
+                                </svg>
+                                Telegram Cüzdanı ile Öde (${costUSD.toFixed(2)} USD)
+                            </div>
+                        </button>
+                    </div>
+                </div>`;
+            container.innerHTML += template;
+        });
+        document.querySelectorAll('.upgrade-button').forEach(btn => btn.addEventListener('click', purchaseUpgrade));
+        document.querySelectorAll('.telegram-pay-button').forEach(btn => btn.addEventListener('click', purchaseUpgrade));
+    };
+    
+    const renderBoostsUI = () => {
+        const container = el('boosts-container');
+        container.innerHTML = '';
+        const isBoostActive = state.activeBoost.endTime > Date.now();
+
+        BOOST_CONFIG.forEach(boost => {
+            const canAfford = state.totalEarned >= boost.cost;
+            const isDisabled = !canAfford || isBoostActive;
+            const color = isBoostActive ? 'var(--red-accent)' : 'var(--green-accent)';
+            const buttonText = isBoostActive ? 'Zaten Güçlendirme Aktif' : `Etkinleştir (${boost.cost.toFixed(2)} GC)`;
             
-            const updateStakingUI = () => {
-                elements.stakedAmountEl.textContent = state.stakedAmount.toFixed(4);
-                elements.unstakeButton.disabled = state.stakedAmount <= 0;
-            };
+            const template = `
+                <div class="ios-panel p-3">
+                    <h3 class="font-bold text-base">${boost.label} <span class="text-sm" style="color: var(--text-secondary);">(x${boost.multiplier})</span></h3>
+                    <p class="text-xs" style="color: var(--text-secondary);">${boost.desc}</p>
+                    <button data-boost-id="${boost.id}" class="btn boost-button w-full font-semibold py-2 rounded-xl mt-2 text-sm" style="background: ${isDisabled ? 'var(--component-bg)' : color}; color: ${isDisabled ? 'var(--text-secondary)' : 'white'};" ${isDisabled ? 'disabled' : ''}>
+                        ${buttonText}
+                    </button>
+                </div>`;
+            container.innerHTML += template;
+        });
+        document.querySelectorAll('.boost-button').forEach(btn => btn.addEventListener('click', purchaseBoost));
+    };
 
-            const purchaseUpgrade = (e) => {
-                const type = e.currentTarget.dataset.upgradeType; const level = state.upgradeLevels[type];
-                const cost = calculate.upgradeCost(type, level);
-                if (state.totalEarned >= cost) {
-                    state.totalEarned -= cost; state.upgradeLevels[type]++; state.stats.upgradesPurchased++;
-                    showToast(`${UPGRADE_CONFIG[type].name} yükseltildi!`);
-                }
-            };
+    const renderStatsUI = () => {
+        const statsData = [
+            { label: 'GC Bakiyesi', value: state.totalEarned.toFixed(6) },
+            { label: 'TON Bakiyesi', value: state.totalTON.toFixed(6) },
+            { label: 'USDT Bakiyesi', value: state.totalUSDT.toFixed(6) },
+            { label: 'USD Cüzdanı', value: state.usdBalance.toFixed(2) },
+            { label: 'Toplam Staking Geliri (GC)', value: state.stats.totalStaked.toFixed(6) },
+            { label: 'Piyasa İşlemleri', value: state.stats.marketBuys + state.stats.marketSells },
+            { label: 'Kullanılan Güçlendirme', value: state.stats.boostsUsed },
+            { label: 'Yapılan Yükseltme', value: state.stats.upgradesPurchased },
+            { label: 'Davet Edilenler', value: state.friendsInvited },
+        ];
+        el('stats-container').innerHTML = statsData.map(stat => `
+            <div class="ios-panel p-3">
+                <p class="text-xs" style="color: var(--text-secondary);">${stat.label}</p>
+                <p class="font-bold text-xl">${stat.value}</p>
+            </div>
+        `).join('');
+    };
+
+    const updateDashboardUI = () => {
+        const isMining = !!state.miningStartTime;
+        const sessionDuration = calculate.sessionDuration();
+        const elapsedTime = isMining ? Date.now() - state.miningStartTime : 0;
+        const timeLeft = sessionDuration - elapsedTime;
+        const isSessionFinished = timeLeft <= 0 && isMining;
+
+        
+        // Miner Core Durumunu Güncelleme
+        const minerCoreEl = el('miner-core-el');
+        const isCoreActive = isMining && !isSessionFinished;
+
+        // NEW: Gezegen Rengini Güncelle
+        minerCoreEl.className = `relative w-full h-full flex items-center justify-center miner-core`;
+        if (isCoreActive) {
+            minerCoreEl.classList.add('miner-active', `coin-${state.currentMineType}`);
+        } else {
+            minerCoreEl.classList.remove('miner-active');
+        }
+
+        // NEW: Aktif Kazım Tipini ve Butonları Vurgula
+        document.querySelectorAll('.coin-select-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.mineType === state.currentMineType) {
+                btn.classList.add('active');
+                // Aktif butona dinamik renkli gölgeyi uygula
+                const colorVar = `--${state.currentMineType === 'GC' ? 'primary' : state.currentMineType.toLowerCase()}-accent`;
+                btn.style.boxShadow = `0 0 0 3px ${getComputedStyle(document.documentElement).getPropertyValue(colorVar)}`;
+            } else {
+                 btn.style.boxShadow = 'none';
+            }
+        });
+        
+        // Madencilik ipucu metnini güncelle
+        if (isSessionFinished) {
+            el('miner-prompt-text').textContent = `24 saatlik kazım tamamlandı. Birikimi (${state.currentMineType}) almak için çekirdeğe dokunun.`;
+            minerCoreEl.classList.add('miner-finished'); // Yeni durum için class
+        } else if (isMining) {
+             el('miner-prompt-text').textContent = `Oturum aktif. Kazım: ${state.currentMineType}. Yeni kazıma başlamak için 24 saati bekleyin.`;
+        } else {
+             el('miner-prompt-text').textContent = `Madenciliği başlatmak için çekirdeğe dokunun. Kazım birimi: ${state.currentMineType}.`;
+        }
+
+        // Timer ve Progress Bar Güncellemesi
+        el('timer').textContent = formatTime(timeLeft);
+        const progressPercentage = Math.min(100, (elapsedTime / sessionDuration) * 100);
+        el('mining-progress-fill').style.width = `${progressPercentage}%`;
+        el('mining-progress-fill').style.backgroundColor = isSessionFinished ? 'var(--red-accent)' : 'var(--primary-accent)';
+
+        // Boost Durumu
+        const isBoosted = state.activeBoost.endTime > Date.now();
+        minerCoreEl.classList.toggle('miner-boosted', isBoosted);
+        
+        if (isBoosted) {
+            el('active-boost-status').classList.remove('hidden');
+            el('active-boost-status').textContent = `Güçlendirme Aktif: ${formatTime(state.activeBoost.endTime - Date.now())}`;
+        } else {
+            el('active-boost-status').classList.add('hidden');
+        }
+
+        // --- ANA HEADER BAKIYE GÜNCELLEMESİ (Dinamik) ---
+        const now = Date.now();
+        const currentBalance = getBalance(state.currentMineType);
+        
+        // UI Bakiye kısıtlaması (3 saniyede bir güncelleme)
+        if (now - lastBalanceUpdateUI >= BALANCE_UI_UPDATE_THROTTLE) {
+             el('main-earned-amount').textContent = currentBalance.toFixed(8);
+             el('usd-balance').textContent = state.usdBalance.toFixed(2);
+             lastBalanceUpdateUI = now;
+        }
+        
+        // Dinamik Etiket Güncellemesi
+        el('main-balance-label').textContent = `${state.currentMineType} BAKİYE`;
+
+
+        // --- YENİ: TÜM BAKİYELERİ GÖSTEREN PANEL GÜNCELLEMESİ ---
+        el('balance-gc').textContent = state.totalEarned.toFixed(4);
+        el('balance-ton').textContent = state.totalTON.toFixed(4);
+        el('balance-usdt').textContent = state.totalUSDT.toFixed(4);
+        el('balance-usd').textContent = state.usdBalance.toFixed(2);
+
+
+        el('earning-rate').textContent = `${calculate.miningRate().toFixed(5)} ${state.currentMineType}/s`;
+        el('total-hash-power').textContent = `${calculate.miningRate().toFixed(5)} ${state.currentMineType}/s`;
+    };
+    
+    const updateStakingUI = () => {
+        el('staked-amount').textContent = state.stakedAmount.toFixed(4);
+        el('unstake-button').disabled = state.stakedAmount <= 0;
+        
+        // Staking input'un rengini temaya göre ayarla
+        const isDark = state.settings.theme === 'dark';
+        const stakeInputEl = el('stake-input');
+        if (isDark) {
+            stakeInputEl.style.color = 'white';
+            stakeInputEl.style.borderColor = 'var(--component-bg)';
+            stakeInputEl.style.background = 'var(--component-bg)';
+        } else {
+            stakeInputEl.style.color = 'var(--text-primary)';
+            stakeInputEl.style.borderColor = 'var(--component-bg-hover)';
+            stakeInputEl.style.background = 'var(--component-bg)';
+        }
+    };
+    
+    const updateMarketTransactionCost = () => {
+        const amount = parseFloat(el('market-input-amount').value) || 0;
+        const cost = amount * state.gcPrice;
+        el('transaction-cost').textContent = `Tahmini Maliyet/Gelir: ${cost.toFixed(4)} USD`;
+        
+        // Market input'un rengini temaya göre ayarla
+        const isDark = state.settings.theme === 'dark';
+        const marketInputEl = el('market-input-amount');
+        if (isDark) {
+            marketInputEl.style.color = 'white';
+            marketInputEl.style.borderColor = 'var(--component-bg)';
+            marketInputEl.style.background = 'var(--component-bg)';
+        } else {
+            marketInputEl.style.color = 'var(--text-primary)';
+            marketInputEl.style.borderColor = 'var(--component-bg-hover)';
+            marketInputEl.style.background = 'var(--component-bg)';
+        }
+    };
+
+    // --- Action Handlers (Coin Selection) ---
+    const handleCoinSelect = (e) => {
+        const newMineType = e.currentTarget.dataset.mineType;
+        if (newMineType !== state.currentMineType) {
+            state.currentMineType = newMineType;
+            showToast(`Kazım birimi ${newMineType} olarak değiştirildi.`, 'info');
+            // Madencilik aktifse resetlemeden rengi değiştir
+            updateDashboardUI();
+        }
+    };
+
+
+    // --- Action Handlers (Market) ---
+    const handleMarketBuy = () => {
+        const amountGC = parseFloat(el('market-input-amount').value);
+        if (isNaN(amountGC) || amountGC <= 0) return showToast('Geçersiz miktar!', 'error');
+
+        const costUSD = amountGC * state.gcPrice;
+        
+        if (state.usdBalance >= costUSD) {
+            addBalance('USD', -costUSD);
+            addBalance('GC', amountGC);
+            state.stats.marketBuys++;
+            showToast(`${amountGC.toFixed(4)} GC satın alındı!`, 'success');
+        } else {
+            showToast('Yetersiz USD bakiyesi!', 'error');
+        }
+        el('market-input-amount').value = '';
+        updateMarketTransactionCost();
+    };
+
+    const handleMarketSell = () => {
+        const amountGC = parseFloat(el('market-input-amount').value);
+        if (isNaN(amountGC) || amountGC <= 0) return showToast('Geçersiz miktar!', 'error');
+
+        const revenueUSD = amountGC * state.gcPrice;
+        
+        if (state.totalEarned >= amountGC) {
+            addBalance('GC', -amountGC);
+            addBalance('USD', revenueUSD);
+            state.stats.marketSells++;
+            showToast(`${amountGC.toFixed(4)} GC satıldı. (+${revenueUSD.toFixed(2)} USD)`, 'success');
+        } else {
+            showToast('Yetersiz Gemini Coin bakiyesi!', 'error');
+        }
+        el('market-input-amount').value = '';
+        updateMarketTransactionCost();
+    };
+
+    const handleConversion = () => {
+        const fromCurrency = el('convert-from-currency').value;
+        const toCurrency = el('convert-to-currency').value;
+        const amount = parseFloat(el('convert-amount').value);
+
+        if (isNaN(amount) || amount <= 0) return showToast('Geçersiz dönüştürme miktarı!', 'error');
+        if (fromCurrency === toCurrency) return showToast('Aynı birime dönüştüremezsiniz!', 'error');
+
+        const fromBalance = getBalance(fromCurrency);
+        const fromPrice = getPrice(fromCurrency);
+        const toPrice = getPrice(toCurrency);
+
+        if (fromBalance < amount) return showToast(`Yetersiz ${fromCurrency} bakiyesi! (Mevcut: ${fromBalance.toFixed(4)})`, 'error');
+
+        // Dönüşüm hesaplaması: (Miktar * Çıkış Fiyatı) / Giriş Fiyatı
+        const valueInUSD = amount * fromPrice;
+        const receivedAmount = valueInUSD / toPrice;
+
+        // Bakiye güncellemeleri
+        deductBalance(fromCurrency, amount);
+        addBalance(toCurrency, receivedAmount);
+
+        showToast(`${amount.toFixed(4)} ${fromCurrency} -> ${receivedAmount.toFixed(4)} ${toCurrency} dönüştürüldü!`, 'success');
+        el('convert-amount').value = '';
+        updateConversionResult();
+    };
+
+    const updateConversionResult = () => {
+        const fromCurrency = el('convert-from-currency').value;
+        const toCurrency = el('convert-to-currency').value;
+        const amount = parseFloat(el('convert-amount').value) || 0;
+
+        if (fromCurrency === toCurrency) {
+             el('conversion-result').textContent = 'Tahmini Alınacak: Lütfen farklı birimler seçin.';
+             return;
+        }
+
+        const fromPrice = getPrice(fromCurrency);
+        const toPrice = getPrice(toCurrency);
+        
+        const valueInUSD = amount * fromPrice;
+        const receivedAmount = valueInUSD / toPrice;
+        
+        el('conversion-result').textContent = `Tahmini Alınacak: ${receivedAmount.toFixed(4)} ${toCurrency}`;
+    };
+
+
+    const handleWithdrawalRequest = () => {
+        const amountGC = parseFloat(el('withdrawal-input-amount').value);
+
+        if (isNaN(amountGC) || amountGC < MIN_WITHDRAWAL_GC) {
+             return showToast(`Çekim için minimum miktar ${MIN_WITHDRAWAL_GC.toFixed(0)} GC olmalıdır.`, 'error');
+        }
+        
+        if (state.totalEarned < amountGC) {
+            return showToast(`Yetersiz bakiye! Çekim için ${amountGC.toFixed(4)} GC'ye ihtiyacınız var.`, 'error');
+        }
+
+        if (state.friendsInvited < REQUIRED_INVITES) {
+            return showToast(`Çekim yapmak için ${REQUIRED_INVITES} arkadaş davet etmelisiniz. (Mevcut: ${state.friendsInvited})`, 'error');
+        }
+
+        // --- SUCCESSFUL WITHDRAWAL SIMULATION ---
+        
+        const usdValue = amountGC * state.gcPrice;
+        
+        deductBalance('GC', amountGC);
+        addBalance('USD', usdValue);
+        state.withdrawalRequests++;
+
+        el('withdrawal-input-amount').value = '';
+        
+        showToast(`Çekim talebiniz işleniyor. ${amountGC.toFixed(4)} GC (${usdValue.toFixed(2)} USD) bakiyenize eklendi!`, 'success');
+    };
+
+
+    // --- Action Handlers (Game) ---
+
+    const purchaseUpgrade = (e) => {
+        const type = e.currentTarget.dataset.upgradeType; 
+        const currency = e.currentTarget.dataset.currency;
+        const level = state.upgradeLevels[type];
+        const costGC = calculate.upgradeCost(type, level);
+
+        let deductionSuccessful = false;
+        
+        if (currency === 'GC') {
+            if (state.totalEarned >= costGC) {
+                deductBalance('GC', costGC);
+                deductionSuccessful = true;
+            } else {
+                showToast('Yetersiz Gemini Coin bakiyesi!', 'error');
+            }
+        } else if (currency === 'USD') {
+            const costUSD = costGC * state.gcPrice;
+            if (state.usdBalance >= costUSD) {
+                deductBalance('USD', costUSD);
+                deductionSuccessful = true;
+                showToast(`Telegram Cüzdanı ile ${costUSD.toFixed(2)} USD harcandı.`, 'info');
+            } else {
+                showToast('Yetersiz Telegram Cüzdanı (USD) bakiyesi!', 'error');
+            }
+        }
+
+        if (deductionSuccessful) {
+            state.upgradeLevels[type]++; 
+            state.stats.upgradesPurchased++;
+            showToast(`${UPGRADE_CONFIG[type].name} yükseltildi!`, 'success');
+            renderUpgradesUI();
+        }
+    };
+    
+    const purchaseBoost = (e) => {
+        const id = e.currentTarget.dataset.boostId; 
+        const boost = BOOST_CONFIG.find(b => b.id === id);
+
+        if (boost && state.totalEarned >= boost.cost && state.activeBoost.endTime <= Date.now()) {
+            deductBalance('GC', boost.cost);
+            state.activeBoost = { type: id, endTime: Date.now() + boost.duration };
+            state.stats.boostsUsed++;
+            showToast(`${boost.label} etkinleştirildi! Kazım hızı x${boost.multiplier}!`, 'success');
+            renderBoostsUI();
+        } else if (state.activeBoost.endTime > Date.now()) {
+            showToast('Zaten aktif bir güçlendirme var!', 'info');
+        } else {
+            showToast('Yetersiz bakiye!', 'error');
+        }
+    };
+
+    const startMining = () => {
+        if (state.miningStartTime) return; 
+
+        if (state.miningStartTime !== null && Date.now() - state.miningStartTime >= calculate.sessionDuration()) {
+             collectSessionEarnings();
+        }
+
+        state.miningStartTime = Date.now();
+        state.lastUpdateTimestamp = Date.now();
+        showToast(`24 saatlik ${state.currentMineType} madencilik oturumu başlatıldı!`, 'info');
+    };
+
+    const collectSessionEarnings = () => {
+        if (state.miningStartTime === null) return false;
+        
+        const sessionDuration = calculate.sessionDuration();
+        const elapsedTime = Date.now() - state.miningStartTime;
+        
+        if (elapsedTime >= sessionDuration) {
+            const finalRate = calculate.miningRate();
+            const totalEarnings = (sessionDuration / 1000) * finalRate;
             
-            const purchaseBoost = (e) => {
-                const id = e.currentTarget.dataset.boostId; const boost = BOOST_CONFIG.find(b => b.id === id);
-                if(boost && state.totalEarned >= boost.cost && state.activeBoost.endTime <= Date.now()){
-                    state.totalEarned -= boost.cost; state.activeBoost = { type: id, endTime: Date.now() + boost.duration };
-                    state.stats.boostsUsed++;
-                    showToast(`${boost.label} etkinleştirildi!`);
-                }
-            };
+            // NEW: Kazancı doğru birime ekle
+            addBalance(state.currentMineType, totalEarnings);
 
-            const stopMining = () => {
-                if (!state.miningStartTime) return;
+            state.stats.totalMined += totalEarnings;
+            
+            state.miningStartTime = null; 
+            
+            showToast(`Oturumdan ${totalEarnings.toFixed(5)} ${state.currentMineType} toplandı!`, 'success');
+            return true;
+        }
+        return false;
+    }
+
+    const handleMinerCoreClick = () => {
+        const isMining = !!state.miningStartTime;
+        const sessionDuration = calculate.sessionDuration();
+        const elapsedTime = isMining ? Date.now() - state.miningStartTime : 0;
+        const isSessionFinished = elapsedTime >= sessionDuration && isMining;
+
+        if (isSessionFinished) {
+            collectSessionEarnings();
+            startMining(); 
+        } else if (!isMining) {
+            startMining();
+        } else {
+             showToast('Madencilik oturumu zaten aktif. 24 saat bitmeden toplanamaz.', 'error');
+        }
+    };
+
+    const handleStaking = (e) => {
+        const action = e.currentTarget.id;
+        if (action === 'stake-button') {
+            const amount = parseFloat(el('stake-input').value);
+            if (!isNaN(amount) && amount > 0 && state.totalEarned >= amount) {
+                deductBalance('GC', amount);
+                state.stakedAmount += amount;
+                el('stake-input').value = '';
+                showToast(`${amount.toFixed(4)} GC kilitlendi!`, 'success');
+            } else {
+                showToast('Yetersiz bakiye veya geçersiz miktar!', 'error');
+            }
+        } else if (action === 'unstake-button') {
+            if(state.stakedAmount > 0){
+                const amount = state.stakedAmount;
+                addBalance('GC', amount);
+                state.stakedAmount = 0;
+                showToast(`${amount.toFixed(4)} GC çekildi!`, 'success');
+            }
+        }
+    };
+    
+    // YENİ: Davet Simülasyonu Fonksiyonu - KALDIRILDI
+    // const simulateInvite = () => {
+    //     state.friendsInvited++;
+    //     el('invited-count').textContent = state.friendsInvited;
+    //     showToast(`+1 Davet simüle edildi! Toplam: ${state.friendsInvited}`, 'success');
+    // };
+    
+    // --- External API Call (AI Analysis) ---
+    const getMarketAnalysis = async () => {
+        showModal('AI Piyasa Analizi', '', true);
+
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
+        const systemPrompt = "You are a world-class crypto market analyst. You provide short, engaging, and insightful market reports. Your tone is professional but slightly optimistic and futuristic. Write in Turkish.";
+        const userQuery = "Kurgusal kripto para birimimiz 'GEMINI COIN' hakkında kısa bir piyasa analizi raporu yaz. Yapay zeka ağlarıyla olan yenilikçi (kurgusal) entegrasyonunu, stabil işlem hızını ve Web3 ekosistemindeki potansiyel büyümesini vurgula. Bir paragrafı geçmesin. Raporda mutlaka 'Gemini Coin' adını kullan.";
+        
+        const payload = { 
+            contents: [{ parts: [{ text: userQuery }] }], 
+            systemInstruction: { parts: [{ text: systemPrompt }] }, 
+        };
+
+        let responseText = 'Analiz alınamadı. API anahtarı boş olabilir veya bir hata oluştu.';
+
+        try {
+            const response = await fetch(apiUrl, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(payload) 
+            });
+            if (!response.ok) throw new Error(`API error: ${response.status}`);
+            
+            const result = await response.json();
+            responseText = result.candidates?.[0]?.content?.parts?.[0]?.text || 'Analiz alınamadı.';
+
+        } catch (error) {
+             console.error('Gemini API Hatası:', error);
+             responseText = `Analiz alınamadı. Detay: ${error.message}. Lütfen API anahtarını kontrol edin.`;
+        }
+
+        showModal('AI Piyasa Analizi', responseText, false);
+    };
+
+
+    // --- Core Game Loop ---
+    const continuousUpdateLoop = () => {
+        const now = Date.now();
+        const deltaTime = now - state.lastUpdateTimestamp;
+
+        if (deltaTime > 0) {
+            
+            // 1. Staking Kazancı Hesaplama
+            if (state.stakedAmount > 0) {
+                const earningsPerMs = (state.stakedAmount * STAKING_APY) / (365 * 24 * 60 * 60 * 1000);
+                const earned = deltaTime * earningsPerMs;
+                addBalance('GC', earned); // Staking her zaman GC kazandırır
+                state.stats.totalStaked += earned;
+                if(Math.random() < (deltaTime / 1000) * 0.1) createFloatingText(`+${earned.toFixed(5)} GC`, el('staking-reward-effect-container'));
+            }
+
+            // 2. Madencilik Kazancı ve Süre Takibi
+            if (state.miningStartTime) {
                 const sessionDuration = calculate.sessionDuration();
-                const sessionEarnings = (sessionDuration / 1000) * calculate.miningRate();
-                state.totalEarned += sessionEarnings - ((Date.now() - state.miningStartTime) / 1000 * calculate.miningRate()); // Add remaining amount
-                
-                state.miningStartTime = null; 
-                showToast('Madencilik oturumu tamamlandı!', 'info'); 
-            };
-            
-            const continuousUpdateLoop = () => {
-                const now = Date.now();
-                const deltaTime = now - state.lastUpdateTimestamp;
+                const elapsedTime = now - state.miningStartTime;
 
-                if (deltaTime > 0) {
-                    if (state.stakedAmount > 0) {
-                        const earningsPerSecond = (state.stakedAmount * STAKING_APY) / (365 * 24 * 60 * 60);
-                        const earned = (deltaTime / 1000) * earningsPerSecond;
-                        state.totalEarned += earned;
-                        state.stats.totalStaked += earned;
-                        if(Math.random() < 0.05) createFloatingText(`+${earned.toFixed(7)}`, elements.stakingRewardEffectContainer);
-                    }
-
-                    if (state.miningStartTime) {
-                        const sessionDuration = calculate.sessionDuration();
-                        const elapsedTime = now - state.miningStartTime;
-
-                        if (elapsedTime >= sessionDuration) {
-                            stopMining();
-                        } else {
-                            const rate = calculate.miningRate();
-                            const earned = (deltaTime / 1000) * rate;
-                            state.totalEarned += earned;
-                            state.stats.totalMined += earned;
-                            elements.timerEl.textContent = formatTime(sessionDuration - elapsedTime);
-                        }
-                    }
-                }
-                state.lastUpdateTimestamp = now;
-                
-                elements.earnedAmountEl.textContent = state.totalEarned.toFixed(8);
-                elements.earningRateEl.textContent = `${calculate.miningRate().toFixed(5)} GMN/s`;
-                
-                updateDashboardUI(); renderUpgradesUI(); renderBoostsUI(); updateStakingUI(); renderStatsUI();
-                
-                requestAnimationFrame(continuousUpdateLoop);
-            };
-            
-            const startMining = () => {
-                if (state.miningStartTime) return;
-                state.miningStartTime = Date.now();
-                state.lastUpdateTimestamp = Date.now();
-                showToast('Madencilik oturumu başlatıldı!', 'info');
-            };
-
-            const showModal = (title, text) => {
-                elements.modalTitle.textContent = title;
-                elements.modalText.textContent = text;
-                elements.modalOverlay.classList.add('show');
-            };
-
-            const getMarketAnalysis = async () => {
-                showModal('AI Piyasa Analizi', 'Analiz oluşturuluyor, lütfen bekleyin...');
-                const apiKey = ""; 
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-                const systemPrompt = "You are a world-class crypto market analyst. You provide short, engaging, and insightful market reports. Your tone is professional but slightly optimistic and futuristic.";
-                const userQuery = "Write a brief market analysis report for our fictional cryptocurrency, 'GEMINI COIN'. Highlight its innovative (fictional) integration with decentralized AI networks, its stable transaction speed, and its potential for future growth in the Web3 ecosystem. Keep it to one paragraph.";
-                const payload = { contents: [{ parts: [{ text: userQuery }] }], systemInstruction: { parts: [{ text: systemPrompt }] }, };
-
-                try {
-                    const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                    if (!response.ok) throw new Error(`API error: ${response.status}`);
-                    const result = await response.json();
-                    const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-                    elements.modalText.textContent = text || 'Analiz alınamadı.';
-                } catch (error) {
-                    elements.modalText.textContent = 'Bir hata oluştu. Lütfen tekrar deneyin.';
-                }
-            };
-            
-            const initializeApp = () => {
-                loadState();
-                applyTheme(state.settings.theme);
-                setInterval(saveState, SAVE_INTERVAL_MS);
-                continuousUpdateLoop();
-            };
-
-            elements.navButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    elements.navButtons.forEach(btn => btn.classList.remove('active'));
-                    button.classList.add('active');
-                    elements.pages.forEach(page => page.classList.remove('active'));
-                    el(`page-${button.dataset.page}`).classList.add('active');
-                });
-            });
-
-            elements.mineButton.addEventListener('click', startMining);
-            elements.geminiButton.addEventListener('click', getMarketAnalysis);
-            elements.modalCloseButton.addEventListener('click', () => elements.modalOverlay.classList.remove('show'));
-            
-            elements.stakeButton.addEventListener('click', () => {
-                const amount = parseFloat(elements.stakeInput.value);
-                if (!isNaN(amount) && amount > 0 && state.totalEarned >= amount) {
-                    state.totalEarned -= amount; state.stakedAmount += amount;
-                    elements.stakeInput.value = '';
-                    showToast(`${amount.toFixed(4)} GMN kilitlendi!`);
+                if (elapsedTime >= sessionDuration) {
+                    state.miningStartTime = Date.now() - sessionDuration;
                 } else {
-                    showToast('Yetersiz bakiye veya geçersiz miktar!', 'error');
+                    const rate = calculate.miningRate();
+                    const earned = (deltaTime / 1000) * rate;
+                    
+                    // Kazancı doğru birime ekle
+                    addBalance(state.currentMineType, earned);
+                    state.stats.totalMined += earned;
                 }
-            });
-            elements.unstakeButton.addEventListener('click', () => {
-                if(state.stakedAmount > 0){
-                    const amount = state.stakedAmount;
-                    state.totalEarned += state.stakedAmount; state.stakedAmount = 0;
-                    showToast(`${amount.toFixed(4)} GMN çekildi!`);
-                }
-            });
+            }
+        }
+        state.lastUpdateTimestamp = now;
+        
+        // UI Güncellemeleri
+        updateDashboardUI(); 
+        updateStakingUI();
+        
+        requestAnimationFrame(continuousUpdateLoop);
+    };
+    
+    // --- Initialization ---
 
-            initializeApp();
-});
+    const initializeApp = () => {
+        loadState();
+        applyTheme(state.settings.theme); 
+        updateMarketPrice(); // Piyasayı ilk kez yükle
+        renderBaseRates(); // Base Rate'leri yükle
+
+        // Event Listeners Setup
+        document.querySelectorAll('.nav-button').forEach(button => {
+            button.addEventListener('click', () => {
+                document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+                el(`page-${button.dataset.page}`).classList.add('active');
+                
+                // Sayfaya özel render çağrıları
+                if(button.dataset.page === 'upgrades') renderUpgradesUI();
+                if(button.dataset.page === 'stats') renderStatsUI();
+                if(button.dataset.page === 'settings') el('invited-count').textContent = state.friendsInvited;
+            });
+        });
+
+        // Miner Core Click Handler
+        el('miner-core-el').addEventListener('click', handleMinerCoreClick);
+        
+        // Coin Selector Handlers
+        document.querySelectorAll('.coin-select-btn').forEach(btn => {
+            btn.addEventListener('click', handleCoinSelect);
+        });
+
+        const geminiButton = el('gemini-analysis-button');
+        if (geminiButton) {
+            geminiButton.addEventListener('click', getMarketAnalysis);
+        }
+        
+        // NEW: Simulate Invite Button Handler (SADECE GÖSTERİM KONTROLÜ KALDI)
+        // const inviteButton = el('simulate-invite-button');
+        // if (inviteButton) {
+        //     inviteButton.addEventListener('click', simulateInvite);
+        // }
+
+
+        el('modal-close-button').addEventListener('click', () => el('modal-overlay').classList.remove('show'));
+        el('theme-toggle').addEventListener('change', () => {
+            const newTheme = el('theme-toggle').checked ? 'dark' : 'light';
+            state.settings.theme = newTheme;
+            document.documentElement.setAttribute('data-theme', newTheme);
+            showToast(newTheme === 'dark' ? '🌙 Karanlık tema aktif' : '☀️ Aydınlık tema aktif', 'info');
+        });
+        
+        el('stake-button').addEventListener('click', handleStaking);
+        el('unstake-button').addEventListener('click', handleStaking);
+        
+        // Market listeners
+        el('buy-gc-button').addEventListener('click', handleMarketBuy);
+        el('sell-gc-button').addEventListener('click', handleMarketSell);
+        el('market-input-amount').addEventListener('input', updateMarketTransactionCost);
+        
+        // Conversion listeners
+        el('convert-button').addEventListener('click', handleConversion);
+        el('convert-from-currency').addEventListener('change', updateConversionResult);
+        el('convert-to-currency').addEventListener('change', updateConversionResult);
+        el('convert-amount').addEventListener('input', updateConversionResult);
+        
+        // WITHDRAWAL LISTENERS
+        el('request-withdrawal-button').addEventListener('click', handleWithdrawalRequest);
+        
+
+        // Market fiyatını düzenli güncelle
+        setInterval(updateMarketPrice, MARKET_UPDATE_INTERVAL_MS);
+
+        // İlk yükleme için
+        renderUpgradesUI();
+        renderStatsUI();
+        updateMarketTransactionCost(); // Input default değerini ayarlamak için
+        updateConversionResult(); // Conversion result'ı ilk kez ayarla
+
+        // Veri Kayıt Döngüsü ve Ana Döngü Başlangıcı
+        setInterval(saveState, SAVE_INTERVAL_MS);
+        continuousUpdateLoop();
+    };
+
+    document.addEventListener('DOMContentLoaded', initializeApp);
+
 </script>
 </body>
-
 </html>
