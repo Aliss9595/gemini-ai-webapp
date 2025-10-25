@@ -1,1475 +1,1932 @@
 <!DOCTYPE html>
-<html lang="tr" data-theme="light">
+<html lang="tr" class=""> <!-- Karanlık mod için 'class' buraya eklenecek -->
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Kripto İmparatorluğu Simülatörü</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Akıllı Görev Yöneticisi</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Tone.js for optional sound effects (disabled by default) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- iOS Font Düzeltmesi -->
     <style>
-        /* iOS Dark Mode Variables (Updated for deeper, professional look) */
-        :root, [data-theme="dark"] {
-            --bg-color: #0d0d10; /* Darker background */
-            --panel-bg: rgba(30, 30, 35, 0.75); /* Deeper glass panel */
-            --border-color: rgba(255, 255, 255, 0.12); /* Slightly more visible border */
-            --shadow-color: rgba(0,0,0,0.5); /* Stronger shadow */
-            --primary-accent: #0A84FF; /* Blue (GC) */
-            --green-accent: #30D158; /* Green (TON) */
-            --yellow-accent: #FFD60A;
-            --purple-accent: #BF5AF2;
-            --indigo-accent: #5E5CE6;
-            --red-accent: #FF453A; /* Red (USDT) */
-            --text-primary: #FFFFFF;
-            --text-secondary: #8E8E93;
-            --component-bg: #2C2C2E;
-            --component-bg-hover: #3A3A3C;
-            --market-up: #34c759;
-            --market-down: #ff3b30;
-            --passive-color: #555555; /* NEW: Dark Passive Color */
-        }
-
-        /* iOS Light Mode Variables (CRYSTAL GLASS THEME) */
-        [data-theme="light"] {
-            --bg-color: #F9F9F9; /* Very light, clean background */
-            --panel-bg: rgba(255, 255, 255, 0.9); /* Opaque, white glass */
-            --border-color: rgba(0, 0, 0, 0.08); /* Light border */
-            --shadow-color: rgba(0,0,0,0.08); /* Soft shadow */
-            --primary-accent: #0A84FF; /* Blue (GC) */
-            --green-accent: #30D158; /* Green (TON) */
-            --yellow-accent: #FFD60A;
-            --purple-accent: #BF5AF2;
-            --indigo-accent: #5E5CE6;
-            --red-accent: #FF453A; /* Red (USDT) */
-            --text-primary: #1C1C1E; /* Dark text */
-            --text-secondary: #636366;
-            --component-bg: #E5E5EA;
-            --component-bg-hover: #D1D1D6;
-            --market-up: #34c759;
-            --market-down: #ff3b30;
-            --passive-color: #E5E5E5; /* NEW: Light Passive Color (Light Gray) */
-        }
-
-        html { -webkit-tap-highlight-color: transparent; }
-
+        /* iOS'ta yatay moda geçince fontların devasa olmasını engeller */
+        @-ms-viewport { width: device-width; }
+        @-o-viewport { width: device-width; }
+        @viewport { width: device-width; }
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-primary);
-            transition: background-color 0.4s ease, color 0.4s ease;
-            padding-top: env(safe-area-inset-top, 0);
-            min-height: 100vh;
-            /* YATAY KAYDIRMAYI ÖNLE */
-            overflow-x: hidden;
-            /* DİKEY OLARAK EKRANA SIĞDIRMA */
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+            text-size-adjust: 100%;
+            /* Mobil tarayıcılarda 'aşağı çekip yenileme' ve 'sıçrama' efektini kapatır */
+            overscroll-behavior: none;
+        }
+        
+        /* Tema Geçişi için yumuşak animasyon */
+        body, .bg-white, .bg-gray-50, .bg-gray-100, .bg-gray-800, .bg-gray-900, .text-gray-900, .text-gray-100, input, textarea, select {
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+
+        /* Görev kaydırma stilleri */
+        .task-item {
+            position: relative;
+            overflow: hidden;
+            touch-action: pan-y; /* Dikey kaydırmayı etkin tutar */
+        }
+        .task-content {
+            position: relative;
+            z-index: 10;
+            background: inherit; /* Arka planı üst elementten alır */
+            transition: transform 0.3s ease-out;
+            will-change: transform;
+        }
+        .swipe-action {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 80px; /* Kaydırma eylem alanı genişliği */
             display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            z-index: 1;
         }
-        
-        /* Ana Kapsayıcı ve İçerik Alanı */
-        .app-main-content {
-            flex-grow: 1;
-            overflow-y: hidden; /* Sayfa değişimlerinde kaydırmayı engellemek için */
-            display: flex;
-            flex-direction: column;
+        .swipe-action.left {
+            right: 0;
+            background-color: #ef4444; /* red-500 */
         }
-        
-        /* NeoGlass Panel Styling (Increased blur and border radius) */
-        .ios-panel {
-            background-color: var(--panel-bg);
-            backdrop-filter: blur(30px) saturate(200%); /* Stronger blur */
-            -webkit-backdrop-filter: blur(30px) saturate(200%);
-            border: 1px solid var(--border-color);
-            border-radius: 28px; /* Slightly larger radius */
-            box-shadow: 0 12px 40px 0 var(--shadow-color);
-            transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.2s;
-        }
-        .ios-panel:hover {
-            transform: translateY(-1px);
+        .swipe-action.right {
+            left: 0;
+            background-color: #22c55e; /* green-500 */
         }
 
-        /* Navigation */
-        .bottom-nav {
-            border-top: 1px solid var(--border-color);
-            padding-bottom: env(safe-area-inset-bottom, 1rem);
-            transition: border-color 0.3s ease;
-        }
-
-        .nav-button {
-            color: var(--text-secondary);
-            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), color 0.3s ease;
-        }
-        .nav-button.active { color: var(--primary-accent); }
-        .nav-button:active { transform: scale(0.9); }
-
-        /* Page Transitions */
-        .page {
-            display: none;
-            /* YÜKSEKLİĞİ TAM KAPSAMAK İÇİN flex-grow eklendi */
-            flex-grow: 1; 
-            animation: fadeIn 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-            overflow-y: auto; /* Sayfa içi kaydırma */
-            padding-bottom: 2rem;
-        }
-        .page.active { display: flex; flex-direction: column;}
-        
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* Miner Core Base Style */
-        .miner-container { perspective: 1000px; }
-        .miner-core { 
-            transform-style: preserve-3d;
+        /* Yükleme animasyonu */
+        .loader {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid #3498db; /* Blue */
             border-radius: 50%;
-            /* Gecikmeli Yumuşak Geçiş (1.2s) */
-            transition: all 1.2s cubic-bezier(0.165, 0.84, 0.44, 1);
-            cursor: pointer;
-            filter: drop-shadow(0 0 5px rgba(0,0,0,0.2)); /* Derinlik hissi */
-            /* New: Liquid Surface Look */
-            background: radial-gradient(circle at 70% 30%, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 90%);
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
         }
-        
-        /* Miner Core PASSIVE (Inactive - Gray) State: Liquid Gray */
-        .miner-core:not(.miner-active) {
-            background-color: var(--passive-color);
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1), inset 0 0 10px rgba(0, 0, 0, 0.05);
-            opacity: 0.8;
-            animation: organic-pulse 3s infinite ease-in-out;
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
-        
-        /* NEW: Organic Pulse Animation (Squish & Stretch - Su Damlası Hareketi) */
-        @keyframes organic-pulse {
-            0%, 100% { 
-                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1), inset 0 0 10px rgba(0, 0, 0, 0.05); 
-                transform: scale(0.98) rotate(0deg);
-            }
-            50% { 
-                box-shadow: 0 0 25px rgba(0, 0, 0, 0.3), inset 0 0 15px rgba(0, 0, 0, 0.1); 
-                transform: scale(1.02) rotate(2deg);
-            }
+
+        /* Proje Etiketi */
+        .project-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem; /* 12px */
+            font-weight: 500;
+            margin-right: 8px;
         }
-        
-        /* Miner Core ACTIVE (Mining - Dynamic Color) State: Liquid Dynamic */
-        .miner-core.miner-active {
+
+        /* Rapor için basit çubuk grafik */
+        .bar-chart {
+            display: flex;
+            height: 100px;
+            align-items: flex-end;
+            gap: 8px;
+            border-bottom: 1px solid #9ca3af; /* gray-400 */
+        }
+        .bar {
+            flex-grow: 1;
+            background-color: #3b82f6; /* blue-500 */
+            transition: height 0.5s ease-out;
+        }
+        .dark .bar {
+            background-color: #60a5fa; /* blue-400 */
+        }
+
+        /* Gelişmiş seçenekler panelinin açılıp kapanması */
+        #advancedOptions {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        #advancedOptions.open {
+            max-height: 500px; /* Açıkken alacağı maksimum yükseklik */
+        }
+
+        /* Alt görevlerin açılıp kapanması */
+        .subtask-list {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+            opacity: 0;
+        }
+        .subtask-list.open {
+            max-height: 500px;
             opacity: 1;
-            animation: none; /* Aktifken organik animasyonu durdur */
         }
 
-        /* Specific Mining Colors */
-        .miner-active.coin-GC { 
-            background-color: var(--primary-accent); 
-            box-shadow: 0 0 40px var(--primary-accent), inset 0 0 20px rgba(10, 132, 255, 0.5);
+        /* Toast Bildirim */
+        #toastContainer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
-        .miner-active.coin-TON { 
-            background-color: var(--green-accent); 
-            box-shadow: 0 0 40px var(--green-accent), inset 0 0 20px rgba(48, 209, 88, 0.5);
+        .toast {
+            background-color: #1f2937; /* gray-800 */
+            color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+            opacity: 1;
+            transform: translateX(0);
         }
-        .miner-active.coin-USDT { 
-            background-color: var(--red-accent); 
-            box-shadow: 0 0 40px var(--red-accent), inset 0 0 20px rgba(255, 69, 58, 0.5);
+        .toast.hide {
+            opacity: 0;
+            transform: translateX(100%);
         }
-
-        /* Rings (Dynamic Color) */
-        .ring { 
-            position: absolute; border-radius: 50%; border: 3px solid; 
-            transform-style: preserve-3d; 
-            transition: border-color 1.2s cubic-bezier(0.165, 0.84, 0.44, 1); /* Yumuşak Renk Geçişi */
+        .dark .toast {
+            background-color: #f3f4f6; /* gray-100 */
+            color: #1f2937; /* gray-800 */
         }
-        .miner-active .ring { animation: ring-rotate 15s linear infinite; }
-        .miner-active.coin-GC .ring { border-color: var(--primary-accent); }
-        .miner-active.coin-TON .ring { border-color: var(--green-accent); }
-        .miner-active.coin-USDT .ring { border-color: var(--red-accent); }
-        
-        /* Passive Rings (Slightly Slower Spin, Gray/White Border) */
-        .miner-core:not(.miner-active) .ring {
-            border-color: var(--passive-color);
-            animation: ring-rotate 30s linear infinite; 
-            opacity: 0.2;
-        }
-
-        @keyframes ring-rotate { 
-            from { transform: rotateX(70deg) rotateY(0deg); } 
-            to { transform: rotateX(70deg) rotateY(360deg); } 
-        }
-        
-        .miner-pulse { animation: pulse 2.5s infinite ease-in-out; }
-        @keyframes pulse {
-            0%, 100% { transform: scale(0.95); opacity: 0.8; }
-            50% { transform: scale(1); opacity: 1; }
-        }
-        
-        /* Boosted State (New green glow for the planet/core) */
-        .miner-boosted .miner-core { 
-            /* Boosted color will be applied ON TOP of the coin color */
-            filter: drop-shadow(0 0 10px var(--yellow-accent)); 
-        }
-
-        /* Buttons and Elements */
-        .btn { transition: all 0.2s ease; user-select: none; }
-        .btn:active { transform: scale(0.96); filter: brightness(1.15); }
-        .btn:disabled { background-color: var(--component-bg) !important; color: var(--text-secondary) !important; cursor: not-allowed; opacity: 0.7; }
-
-        /* Coin Selection Buttons */
-        .coin-select-btn {
-            width: 32px; /* Küçültüldü */
-            height: 32px; /* Küçültüldü */
-            border-radius: 50%; 
-            transition: all 0.3s ease;
-            filter: drop-shadow(0 1px 3px rgba(0,0,0,0.1));
-            border: 2px solid transparent; /* Border for active state */
-        }
-
-        .coin-select-btn:hover {
-            filter: drop-shadow(0 2px 5px rgba(0,0,0,0.2));
-        }
-
-        .coin-select-btn.active {
-            border-color: white; /* Active ring color */
-            box-shadow: 0 0 0 3px var(--primary-accent); /* Dynamic ring */
-            transform: scale(1.1); /* Hafif büyütme */
-        }
-        .coin-select-btn.coin-GC.active { box-shadow: 0 0 0 3px var(--primary-accent); }
-        .coin-select-btn.coin-TON.active { box-shadow: 0 0 0 3px var(--green-accent); }
-        .coin-select-btn.coin-USDT.active { box-shadow: 0 0 0 3px var(--red-accent); }
-
-
-        /* Progress Bar */
-        .progress-bar { background-color: var(--component-bg); overflow: hidden; border-radius: 9999px; }
-        .progress-bar-fill { transition: width 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94); border-radius: 9999px; }
-
-        /* Toast Notifications */
-        #toast-container { position: fixed; top: env(safe-area-inset-top, 20px); left: 50%; transform: translateX(-50%); z-index: 200; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
-        .toast { padding: 12px 20px; font-weight: 600; font-size: 14px; border-radius: 9999px; animation: toast-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        @keyframes toast-in { from { opacity: 0; transform: translateY(-20px) scale(0.9); } to { opacity: 1; transform: translateY(0) scale(1); } }
-        
-        /* Floating Text for Staking */
-        .floating-text { position: absolute; bottom: 20px; right: 20px; font-weight: 700; font-size: 1rem; color: var(--indigo-accent); pointer-events: none; animation: float-up 2s ease-out forwards; }
-        @keyframes float-up { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-50px); } }
-
-        /* Modal */
-        #modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.7); /* Darker overlay */
-            backdrop-filter: blur(12px);
-            z-index: 100; display: none; opacity: 0; transition: opacity 0.3s ease;
-        }
-        #modal-overlay.show { display: flex; opacity: 1; }
-        #modal-content { animation: modal-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-        @keyframes modal-in { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-        
-        /* Theme Toggle Switch */
-        .toggle-switch { display: inline-block; position: relative; width: 50px; height: 30px; }
-        .toggle-switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--component-bg); transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 22px; width: 22px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
-        input:checked + .slider { background-color: var(--primary-accent); }
-        input:checked + .slider:before { transform: translateX(20px); }
     </style>
 </head>
-<body class="w-full min-h-screen max-w-lg mx-auto flex flex-col antialiased pb-28">
+<body class="bg-gray-100 dark:bg-gray-900 font-sans antialiased overscroll-behavior-none">
 
-<div id="toast-container"></div>
+    <!-- Toast Bildirim Konteyneri -->
+    <div id="toastContainer"></div>
 
-<!-- HEADER (COMPACTED) -->
-<header class="p-4 pt-6 flex-shrink-0">
-    <!-- Ana Bakiye ve Hız Göstergesi -->
-    <div class="ios-panel p-4">
-        <div class="flex justify-between items-center">
-            <div>
-                <!-- DİNAMİK BAKİYE BAŞLIĞI -->
-                <p class="text-sm font-medium" style="color: var(--text-secondary);" id="main-balance-label">GC BAKİYE</p>
-                <p class="text-3xl font-extrabold tracking-tighter" id="main-earned-amount">0.00000000</p>
-            </div>
-            <div class="text-right">
-                <p class="text-sm font-medium" style="color: var(--text-secondary);">ANLIK KAZIM HIZI</p>
-                <p class="text-xl font-semibold" id="earning-rate">0.00010 GMN/s</p>
-                <div id="usd-balance-panel" class="mt-1 text-xs" style="color: var(--text-secondary);">
-                    ~ <span id="usd-balance">0.00</span> USD
-                </div>
-            </div>
-        </div>
-    </div>
-</header>
-
-<!-- MAIN CONTENT AREA (FLEXIBLE TO FIT SCREEN) -->
-<div class="app-main-content">
-    <main class="flex-grow p-4 space-y-3 flex flex-col">
+    <!-- Uygulama Konteyneri -->
+    <!-- Ekranın tamamını kaplar ve alttaki menüye yer açmak için alttan padding alır -->
+    <div class="flex flex-col h-screen max-w-lg mx-auto bg-white dark:bg-gray-800 shadow-lg">
         
-        <!-- PAGE 1: MINER (KAZIM) -->
-        <div id="page-miner" class="page active flex-shrink-0">
-            <div class="ios-panel p-6 text-center flex flex-col items-center justify-center flex-grow">
-                
-                <div class="flex items-center justify-center w-full">
-                    
-                    <!-- Miner Hologram & Status - CLICKABLE CORE -->
-                    <div class="w-48 h-48 my-4 flex items-center justify-center miner-container flex-shrink-0" id="miner-click-area">
-                        <div id="miner-core-el" class="relative w-full h-full flex items-center justify-center miner-core">
-                            <div id="miner-status-indicator" class="w-full h-full rounded-full flex items-center justify-center transition-all duration-500 miner-pulse">
-                                <div class="ring ring-1"></div>
-                                <div class="ring ring-2"></div>
-                                <div class="ring ring-3"></div>
-                                <!-- Central Energy Core Glow -->
-                                <div class="absolute w-1/4 h-1/4 rounded-full bg-white opacity-20 blur-lg z-20"></div>
-                                <!-- KÜÇÜK İKON KALDIRILDI -->
-                            </div>
-                        </div>
-                    </div>
+        <!-- 1. Başlık (Header) -->
+        <header class="p-4 bg-blue-600 text-white dark:bg-blue-800 flex justify-between items-center shadow-md z-20">
+            <h1 class="text-2xl font-bold">Akıllı Asistan</h1>
+            <div class="flex items-center space-x-2">
+                <!-- Rapor Butonu -->
+                <button id="reportButton" class="p-2 rounded-full hover:bg-blue-700 dark:hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0h6m6 0v-6a2 2 0 00-2-2h-2a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2z" />
+                    </svg>
+                </button>
+                <!-- Bugün Odaklan Butonu -->
+                <button id="focusButton" class="p-2 rounded-full hover:bg-blue-700 dark:hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m12.728 0l-.707.707M12 21v-1m-6.364-1.636l.707-.707" />
+                    </svg>
+                </button>
+                <!-- Tema Değiştir Butonu -->
+                <button id="themeToggle" class="p-2 rounded-full hover:bg-blue-700 dark:hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-white">
+                    <!-- Güneş (Açık Mod) İkonu -->
+                    <svg id="themeIconSun" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M12 12a5 5 0 100-10 5 5 0 000 10z" />
+                    </svg>
+                    <!-- Ay (Karanlık Mod) İkonu -->
+                    <svg id="themeIconMoon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    </svg>
+                </button>
+            </div>
+        </header>
 
-                    <!-- NEW: Mining Coin Selector Panel -->
-                    <div class="flex flex-col space-y-3 ml-4 p-2 ios-panel rounded-xl">
-                        
-                        <div class="coin-selector-panel flex items-center space-x-2">
-                            <button data-mine-type="GC" class="coin-select-btn coin-GC active flex-shrink-0" style="background-color: var(--primary-accent);"></button>
-                            <div class="text-left leading-tight">
-                                <p class="text-sm font-semibold">Gemini Coin (GC)</p>
-                                <p class="text-xs" style="color: var(--text-secondary);" id="rate-gc">0.00010 GC/s</p>
-                            </div>
-                        </div>
-
-                        <div class="coin-selector-panel flex items-center space-x-2">
-                            <button data-mine-type="TON" class="coin-select-btn coin-TON flex-shrink-0" style="background-color: var(--green-accent);"></button>
-                            <div class="text-left leading-tight">
-                                <p class="text-sm font-semibold">TON (TON)</p>
-                                <p class="text-xs" style="color: var(--text-secondary);" id="rate-ton">0.00005 TON/s</p>
-                            </div>
-                        </div>
-                        
-                        <div class="coin-selector-panel flex items-center space-x-2">
-                            <button data-mine-type="USDT" class="coin-select-btn coin-USDT flex-shrink-0" style="background-color: var(--red-accent);"></button>
-                            <div class="text-left leading-tight">
-                                <p class="text-sm font-semibold">USDT (USDT)</p>
-                                <p class="text-xs" style="color: var(--text-secondary);" id="rate-usdt">0.00008 USDT/s</p>
-                            </div>
-                        </div>
-
-                    </div>
-
-                </div>
-                
-                <div id="active-boost-status" class="hidden text-sm font-semibold text-center mb-4 p-2 rounded-lg flex-shrink-0" style="background-color: rgba(48, 209, 88, 0.2); color: var(--green-accent);"></div>
-
-                <!-- Oturum Bilgileri (Compact) -->
-                <div class="grid grid-cols-2 gap-3 w-full text-left flex-shrink-0">
-                    <div class="ios-panel p-3">
-                        <p class="text-xs font-medium" style="color: var(--text-secondary);">SÜRE KALAN</p>
-                        <p id="timer" class="font-bold text-lg">24:00:00</p>
-                        <div class="w-full progress-bar h-1 mt-1"><div id="mining-progress-fill" class="progress-bar-fill h-1" style="width: 100%; background-color: var(--primary-accent);"></div></div>
-                    </div>
-                    <div class="ios-panel p-3">
-                        <p class="text-xs font-medium" style="color: var(--text-secondary);">TOPLAM GÜÇ</p>
-                        <p id="total-hash-power" class="font-bold text-lg">0.00010 GMN/s</p>
-                    </div>
-                </div>
-                
-                <!-- YENİ: TÜM BAKİYELERİ GÖSTEREN PANEL -->
-                <div id="all-balances-panel" class="grid grid-cols-4 gap-2 w-full text-left flex-shrink-0 mt-3">
-                    <div class="ios-panel p-2">
-                        <p class="text-xs font-medium text-center" style="color: var(--text-secondary);">GC</p>
-                        <p class="text-sm font-bold text-center" id="balance-gc">0.00</p>
-                    </div>
-                    <div class="ios-panel p-2">
-                        <p class="text-xs font-medium text-center" style="color: var(--text-secondary);">TON</p>
-                        <p class="text-sm font-bold text-center" id="balance-ton">0.00</p>
-                    </div>
-                    <div class="ios-panel p-2">
-                        <p class="text-xs font-medium text-center" style="color: var(--text-secondary);">USDT</p>
-                        <p class="text-sm font-bold text-center" id="balance-usdt">0.00</p>
-                    </div>
-                    <div class="ios-panel p-2">
-                        <p class="text-xs font-medium text-center" style="color: var(--text-secondary);">USD</p>
-                        <p class="text-sm font-bold text-center" id="balance-usd">0.00</p>
-                    </div>
-                </div>
-
-                <!-- AI Piyasa Analizi butonu kaldırıldı -->
-                <p id="miner-prompt-text" class="text-sm mt-3 flex-shrink-0" style="color: var(--text-secondary);">Madenciliği başlatmak için çekirdeğe dokunun.</p>
+        <!-- 2. Arama ve Filtreleme Alanı -->
+        <div class="p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-10">
+            <!-- Arama Çubuğu -->
+            <input id="searchBar" type="text" placeholder="Görev veya proje ara..." class="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            
+            <!-- Filtre Butonları -->
+            <div class="flex justify-center space-x-2 mt-3">
+                <button data-filter="all" class="filter-btn flex-1 px-3 py-1 text-sm rounded-md bg-blue-500 text-white dark:bg-blue-700 focus:outline-none">Tümü</button>
+                <button data-filter="active" class="filter-btn flex-1 px-3 py-1 text-sm rounded-md bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200 focus:outline-none">Aktif</button>
+                <button data-filter="completed" class="filter-btn flex-1 px-3 py-1 text-sm rounded-md bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200 focus:outline-none">Tamamlanan</button>
             </div>
         </div>
 
-        <!-- PAGE 2: MARKET (PİYASA) -->
-        <div id="page-market" class="page">
-            <h1 class="text-3xl font-bold px-2 mb-3">Gemini Coin Piyasası</h1>
-            <div class="ios-panel p-4 text-center flex flex-col">
-                <p class="text-sm font-medium" style="color: var(--text-secondary);">ANLIK FİYAT (USD)</p>
-                <p id="current-gc-price" class="text-4xl font-extrabold tracking-tighter my-1">0.1000</p>
-                <div id="market-trend" class="flex items-center justify-center text-md font-semibold" style="color: var(--market-up);">
-                    <svg id="trend-icon" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>
-                    <span id="trend-text">Stabil</span>
-                </div>
-                
-                <div class="mt-4 pt-3 border-t" style="border-color: var(--border-color);">
-                    <p class="text-sm font-medium mb-2" style="color: var(--text-secondary);">GC Al / Sat</p>
-                    <input type="number" id="market-input-amount" class="w-full rounded-xl px-4 py-3 border-2 text-center" style="border-color: var(--component-bg); background: var(--component-bg); color: var(--text-primary);" placeholder="Miktar (GC)">
-                    
-                    <div class="flex gap-4 mt-3">
-                        <button id="buy-gc-button" class="btn w-1/2 text-lg font-semibold py-3 rounded-xl" style="background: var(--green-accent); color: black;">AL</button>
-                        <button id="sell-gc-button" class="btn w-1/2 text-lg font-semibold py-3 rounded-xl" style="background: var(--red-accent); color: white;">SAT</button>
-                    </div>
-                    <p id="transaction-cost" class="text-xs mt-2" style="color: var(--text-secondary);">Tahmini Maliyet/Gelir: 0.00 USD</p>
-                </div>
-            </div>
+        <!-- 3. Görev Listesi (Esnek ve Kaydırılabilir Alan) -->
+        <main id="taskList" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-100 dark:bg-gray-900">
+            <!-- Görevler buraya JS ile eklenecek -->
+        </main>
 
-            <!-- NEW: Coin Converter -->
-            <div class="ios-panel p-4 mt-3 flex flex-col">
-                <h2 class="font-bold text-xl mb-3">Çapraz Dönüştürme</h2>
-                <div class="flex flex-col space-y-2">
-                    <div class="flex gap-2">
-                        <select id="convert-from-currency" class="w-1/3 rounded-xl px-2 py-3 border-2" style="border-color: var(--component-bg); background: var(--component-bg); color: var(--text-primary);">
-                            <option value="GC">GC</option>
-                            <option value="TON">TON</option>
-                            <option value="USDT">USDT</option>
+        <!-- 4. Görev Ekleme Menüsü (Footer) -->
+        <footer class="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-inner z-20">
+            <!-- Gelişmiş Seçenekler (Gizli Panel) -->
+            <div id="advancedOptions" class="">
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                    <!-- Tarih ve Saat Seçimi -->
+                    <div>
+                        <label for="taskDueDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Bitiş Tarihi</label>
+                        <input type="datetime-local" id="taskDueDate" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:text-white dark:border-gray-600 focus:outline-none focus:ring-blue-500">
+                    </div>
+                    <!-- Öncelik Seçimi -->
+                    <div>
+                        <label for="taskPriority" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Öncelik</label>
+                        <select id="taskPriority" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:text-white dark:border-gray-600 focus:outline-none focus:ring-blue-500">
+                            <option value="low">Düşük</option>
+                            <option value="medium" selected>Orta</option>
+                            <option value="high">Yüksek</option>
                         </select>
-                        <input type="number" id="convert-amount" class="w-2/3 rounded-xl px-4 py-3 border-2 text-center" style="border-color: var(--component-bg); background: var(--component-bg); color: var(--text-primary);" placeholder="Miktar">
                     </div>
-                    
-                    <div class="flex justify-center my-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 10.293a1 1 0 010 1.414l-6 6a1 1 0 01-1.414 0l-6-6a1 1 0 111.414-1.414L9 14.586V3a1 1 0 112 0v11.586l4.293-4.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg></div>
-                    
-                    <select id="convert-to-currency" class="w-full rounded-xl px-4 py-3 border-2" style="border-color: var(--component-bg); background: var(--component-bg); color: var(--text-primary);">
-                        <option value="TON">TON</option>
-                        <option value="USDT">USDT</option>
-                        <option value="GC">GC</option>
-                    </select>
-                    <p id="conversion-result" class="text-sm mt-1" style="color: var(--text-secondary);">Tahmini Alınacak: 0.00</p>
-                    <button id="convert-button" class="btn w-full text-lg font-semibold py-3 rounded-xl mt-3" style="background: var(--indigo-accent); color: white;">Dönüştür</button>
-                </div>
-            </div>
-
-
-            <!-- NEW: Withdrawal Panel -->
-            <div class="ios-panel p-4 mt-3 flex flex-col">
-                <h2 class="font-bold text-xl mb-3">GC'yi Çek (USD Talep)</h2>
-                
-                <p class="text-xs mb-2" style="color: var(--text-secondary);">Minimum çekim miktarı: 500 GC. Ayrıca, 10 arkadaş davet etme zorunluluğu vardır.</p>
-
-                <input type="number" id="withdrawal-input-amount" class="w-full rounded-xl px-4 py-3 border-2 text-center" style="border-color: var(--component-bg); background: var(--component-bg); color: var(--text-primary);" placeholder="Çekilecek Miktar (GC)">
-                
-                <button id="request-withdrawal-button" class="btn w-full text-lg font-semibold py-3 rounded-xl mt-3" style="background: var(--primary-accent); color: white;">Çekim Talebi Ver</button>
-            </div>
-        </div>
-
-
-        <!-- PAGE 3: UPGRADES (YÜKSELTMELER) -->
-        <div id="page-upgrades" class="page">
-             <h1 class="text-3xl font-bold px-2 mb-3">Donanım Yükseltmeleri</h1>
-             <div id="upgrades-container" class="space-y-3"></div>
-             
-             <h1 class="text-3xl font-bold px-2 mt-6 mb-3">Güçlendirmeler (Boosts)</h1>
-             <div class="ios-panel p-4"><div id="boosts-container" class="space-y-3"></div></div>
-        </div>
-
-        <!-- PAGE 4: STAKING (KİLİTLEME) -->
-        <div id="page-staking" class="page">
-            <h1 class="text-3xl font-bold px-2 mb-3">Likidite Havuzu</h1>
-            
-            <div class="ios-panel p-4 text-center relative flex-shrink-0">
-                 <div id="staking-reward-effect-container" class="absolute inset-0 pointer-events-none"></div>
-                 <p class="text-sm font-medium" style="color: var(--text-secondary);">KİLİTLİ BAKİYE (GC)</p>
-                 <p id="staked-amount" class="text-4xl font-bold tracking-tight my-1">0.0000</p>
-                 <p class="text-xs" style="color: var(--text-secondary);">APY: <span class="font-semibold" style="color: var(--green-accent);">%15</span></p>
-            </div>
-
-            <div class="ios-panel p-4 mt-3 flex-shrink-0">
-                 <h2 class="font-semibold mb-2">Miktar Kilitle</h2>
-                 <div class="flex gap-2">
-                    <input type="number" id="stake-input" class="w-full rounded-xl px-4 py-3 border-2" style="border-color: var(--component-bg); background: var(--component-bg); color: var(--text-primary);" placeholder="0.00">
-                    <button id="stake-button" class="btn font-bold py-3 px-6 rounded-xl text-sm" style="background: var(--indigo-accent); color: white;">KİLİTLE</button>
-                 </div>
-                 <button id="unstake-button" class="btn w-full font-bold py-3 rounded-xl text-sm mt-3" style="background: var(--red-accent); color: white;">TÜMÜNÜ ÇEK</button>
-             </div>
-        </div>
-
-        <!-- PAGE 5: STATS (İSTATİSTİKLER) -->
-        <div id="page-stats" class="page">
-             <h1 class="text-3xl font-bold px-2 mb-3">İstatistikler</h1>
-             <div id="stats-container" class="grid grid-cols-2 gap-3"></div>
-        </div>
-
-        <!-- PAGE 6: SETTINGS (AYARLAR) -->
-        <div id="page-settings" class="page">
-             <h1 class="text-3xl font-bold px-2 mb-3">Ayarlar</h1>
-             <div class="ios-panel p-4 space-y-4">
-                <div class="flex justify-between items-center">
-                    <span class="font-semibold">Arayüz Teması</span>
-                    <label class="toggle-switch"><input type="checkbox" id="theme-toggle"><span class="slider"></span></label>
-                </div>
-                <div class="flex justify-between items-center">
-                    <span class="font-semibold">AI Piyasa Analizi</span>
-                    <button id="gemini-analysis-button" class="btn font-bold py-2 px-4 rounded-xl text-sm" style="background: var(--purple-accent); color: white;">Analiz Oluştur</button>
-                </div>
-                <!-- Davet Sayısı -->
-                 <div class="flex justify-between items-center pt-4 border-t" style="border-color: var(--border-color);">
-                    <span class="font-semibold">Davet Edilen Arkadaş Sayısı</span>
-                    <div class="flex items-center space-x-2">
-                        <span id="invited-count" class="font-bold">0</span>
-                    </div>
-                </div>
-             </div>
-        </div>
-
-    </main>
-</div>
-
-<!-- Alt Navigasyon Çubuğu -->
-<nav class="bottom-nav ios-panel rounded-t-3xl p-2 fixed bottom-0 left-0 right-0 max-w-lg mx-auto flex-shrink-0">
-    <div class="flex justify-around">
-        <button data-page="miner" class="nav-button active p-2">
-            <!-- Miner Icon (Lightning) -->
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" /></svg>
-        </button>
-        <button data-page="market" class="nav-button p-2">
-            <!-- Market Icon (Currency) -->
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" /></svg>
-        </button>
-        <button data-page="upgrades" class="nav-button p-2">
-            <!-- Upgrades Icon (Tool/Config) -->
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM16 3a1 1 0 011 1v7.268a2 2 0 010 3.464V16a1 1 0 11-2 0v-1.268a2 2 0 010-3.464V4a1 1 0 011-1z" /></svg>
-        </button>
-        <button data-page="staking" class="nav-button p-2">
-            <!-- Staking Icon (Wallet/Deposit) -->
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" /><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd" /></svg>
-        </button>
-        <button data-page="stats" class="nav-button p-2">
-            <!-- Stats Icon (Chart) -->
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" /></svg>
-        </button>
-        <button data-page="settings" class="nav-button p-2">
-            <!-- Settings Icon (Cog - YENİ İKON) -->
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.982.54 2.295 0 3.277-.836 1.372-.734 2.942-2.106 2.106a1.532 1.532 0 01-2.286.948c-.38 1.56-2.6 1.56-2.98 0a1.532 1.532 0 01-2.286-.948c-1.372-.836-2.942.734-2.106-2.106a1.532 1.532 0 010-3.277c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 012.286-.948zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>
-        </button>
-    </div>
-</nav>
-
-<!-- Modal Overlay for AI Analysis and Alerts -->
-<div id="modal-overlay" class="items-center justify-center p-4">
-    <div id="modal-content" class="ios-panel p-6 w-full max-w-md">
-         <h2 id="modal-title" class="text-2xl font-bold mb-4"></h2>
-         <p id="modal-text" class="text-gray-600" style="color: var(--text-secondary);"></p>
-         <button id="modal-close-button" class="btn w-full text-lg font-semibold py-3 mt-6 rounded-2xl" style="background: var(--primary-accent); color: white;">Kapat</button>
-    </div>
-</div>
-
-
-<script>
-    // Global Elements Accessor
-    const el = (id) => document.getElementById(id);
-
-    // --- Configuration ---
-    const MINING_BASE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 Hours
-    const STAKING_APY = 0.15; // 15% Annual Percentage Yield
-    const SAVE_INTERVAL_MS = 3000;
-    const MARKET_UPDATE_INTERVAL_MS = 5000;
-    const MIN_WITHDRAWAL_GC = 500.0;
-    const REQUIRED_INVITES = 10;
-    const API_KEY = ""; // Gemini API key for analysis feature
-
-    // NEW: Multi-Coin Mining Rates (GC Rate is Base Rate * Price)
-    const BASE_MINING_RATES = {
-        GC: 0.00010, // Base rate for Gemini Coin (GC)
-        TON: 0.00005, // Base rate for TON Sim
-        USDT: 0.00008, // Base rate for USDT Sim
-    };
-
-    const UPGRADE_CONFIG = {
-        core: { name: "İşlemci Çekirdeği", desc: "Temel kazım oranını artırır.", baseCost: 0.1, costMultiplier: 1.8, baseRate: BASE_MINING_RATES.GC, rateMultiplier: 1.7, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M12 6V4m0 16v-2M12 12l-2 2-2-2m4 4l2-2 2 2" /></svg>`},
-        cooling: { name: "Soğutma Sistemi", desc: "Verimliliği artırarak kazancı çoğaltır.", baseCost: 0.5, costMultiplier: 2.2, baseMultiplier: 1.0, multiplierBonus: 0.1, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>` },
-        battery: { name: "Batarya Kapasitesi", desc: "Oturum süresini uzatır.", baseCost: 1.0, costMultiplier: 3.0, durationBonus: 2 * 3600 * 1000, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>`},
-    };
-    
-    const BOOST_CONFIG = [
-        { id: 'boost1', duration: 10 * 60 * 1000, multiplier: 2, cost: 0.2, label: '10 Dakika x2 Güç', desc: "Kazım hızını 10 dakika boyunca ikiye katla." },
-        { id: 'boost2', duration: 30 * 60 * 1000, multiplier: 3, cost: 1.0, label: '30 Dakika x3 Güç', desc: "Kazım hızını 30 dakika boyunca üçe katla."},
-    ];
-
-    // --- State Management ---
-    let state = {};
-    const defaultState = {
-        totalEarned: 0.0, // GC
-        totalTON: 0.0,    // NEW: TON Simülasyonu
-        totalUSDT: 0.0,   // NEW: USDT Simülasyonu
-        
-        usdBalance: 0.00, 
-        gcPrice: 0.1000, // 1 GC = $0.10
-        tonPrice: 2.5000, // 1 TON = $2.50
-        usdtPrice: 1.0000, // 1 USDT = $1.00 (Stabil olması beklenir)
-
-        miningStartTime: null, 
-        lastUpdateTimestamp: Date.now(),
-        upgradeLevels: { core: 0, cooling: 0, battery: 0 },
-        stakedAmount: 0.0,
-        activeBoost: { type: null, endTime: 0 },
-        settings: { theme: 'light' }, 
-        stats: { totalMined: 0, totalStaked: 0, boostsUsed: 0, upgradesPurchased: 0, marketBuys: 0, marketSells: 0 },
-        friendsInvited: 0,
-        withdrawalRequests: 0,
-        currentMineType: 'GC' // NEW: Hangi coinin kazıldığını tutar
-    };
-    
-    // NEW: Bakiye güncelleme hızını kontrol etmek için global değişken
-    let lastBalanceUpdateUI = Date.now(); 
-    const BALANCE_UI_UPDATE_THROTTLE = 3000; // 3 saniye
-
-    const saveState = () => localStorage.setItem('geminiMinerState', JSON.stringify(state));
-    const loadState = () => {
-        state = { ...defaultState };
-        const saved = localStorage.getItem('geminiMinerState');
-        if (saved) {
-           const savedState = JSON.parse(saved);
-           // Merge saved state with defaults to ensure all keys exist
-           state = { 
-               ...defaultState, 
-               ...savedState, 
-               upgradeLevels: { ...defaultState.upgradeLevels, ...(savedState.upgradeLevels || {}) },
-               activeBoost: { ...defaultState.activeBoost, ...(savedState.activeBoost || {}) },
-               settings: { ...defaultState.settings, ...(savedState.settings || {}) },
-               stats: { ...defaultState.stats, ...(savedState.stats || {}) },
-               
-               friendsInvited: savedState.friendsInvited || 0, 
-               withdrawalRequests: savedState.withdrawalRequests || 0,
-               usdBalance: savedState.usdBalance > 0 ? savedState.usdBalance : defaultState.usdBalance,
-
-               // NEW: Yeni bakiyeleri koru, yoksa 0.0 al
-               totalTON: savedState.totalTON || 0.0,
-               totalUSDT: savedState.totalUSDT || 0.0,
-               
-               // NEW: Fiyatları yükle veya varsayılan al
-               gcPrice: savedState.gcPrice || defaultState.gcPrice,
-               tonPrice: savedState.tonPrice || defaultState.tonPrice,
-               usdtPrice: savedState.usdtPrice || defaultState.usdtPrice,
-               currentMineType: savedState.currentMineType || 'GC',
-           };
-        }
-    };
-
-    // --- Utility Functions ---
-    const formatTime = (ms) => { 
-        if (ms < 0) ms = 0; 
-        const s = Math.floor(ms / 1000); 
-        return `${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor(s%3600/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; 
-    };
-    
-    // NEW: Get the balance of a given currency
-    const getBalance = (currency) => {
-        switch(currency) {
-            case 'GC': return state.totalEarned;
-            case 'TON': return state.totalTON;
-            case 'USDT': return state.totalUSDT;
-            case 'USD': return state.usdBalance; // USD bakiyesini de ekle
-            default: return 0.0;
-        }
-    }
-    
-    // NEW: Deduct amount from a given currency
-    const deductBalance = (currency, amount) => {
-        switch(currency) {
-            case 'GC': state.totalEarned -= amount; break;
-            case 'TON': state.totalTON -= amount; break;
-            case 'USDT': state.totalUSDT -= amount; break;
-            case 'USD': state.usdBalance -= amount; break;
-        }
-    }
-
-    // NEW: Add amount to a given currency
-    const addBalance = (currency, amount) => {
-        switch(currency) {
-            case 'GC': state.totalEarned += amount; break;
-            case 'TON': state.totalTON += amount; break;
-            case 'USDT': state.totalUSDT += amount; break;
-            case 'USD': state.usdBalance += amount; break;
-        }
-    }
-    
-    // NEW: Get USD value of a currency
-    const getPrice = (currency) => {
-        switch(currency) {
-            case 'GC': return state.gcPrice;
-            case 'TON': return state.tonPrice;
-            case 'USDT': return state.usdtPrice;
-            case 'USD': return 1.0; // USD'nin fiyatı $1'dır.
-            default: return 0.0;
-        }
-    }
-
-    const calculate = {
-        upgradeCost: (type, level) => UPGRADE_CONFIG[type].baseCost * Math.pow(UPGRADE_CONFIG[type].costMultiplier, level),
-        miningRate: () => {
-            const coreLevel = state.upgradeLevels.core; const coolingLevel = state.upgradeLevels.cooling;
-            
-            // Core'un temel rate'ini al (GC rate'ini kullanıyoruz, diğerleri için çarpım yapacağız)
-            let baseRate = UPGRADE_CONFIG.core.baseRate * Math.pow(UPGRADE_CONFIG.core.rateMultiplier, coreLevel);
-            const coolingMultiplier = UPGRADE_CONFIG.cooling.baseMultiplier + (coolingLevel * UPGRADE_CONFIG.cooling.multiplierBonus);
-            
-            const boost = BOOST_CONFIG.find(b => b.id === state.activeBoost.type);
-            const isBoostActive = state.activeBoost.endTime > Date.now() && boost;
-            const boostMultiplier = isBoostActive ? boost.multiplier : 1;
-            
-            let effectiveRate = baseRate * coolingMultiplier * boostMultiplier;
-            
-            // Eğer GC kazmıyorsak, Base Rate'i o coinin kendi Base Mining Rate'inden al
-            if (state.currentMineType !== 'GC') {
-                effectiveRate = BASE_MINING_RATES[state.currentMineType] * coolingMultiplier * boostMultiplier;
-            }
-
-            return effectiveRate;
-        },
-        sessionDuration: () => MINING_BASE_DURATION_MS + (state.upgradeLevels.battery * UPGRADE_CONFIG.battery.durationBonus),
-    };
-
-    const showToast = (message, type = 'primary') => {
-        const toast = document.createElement('div');
-        toast.textContent = message;
-        const isDark = state.settings.theme === 'dark';
-        let bgColor = ''; let textColor = isDark ? 'white' : 'black';
-
-        switch(type) {
-            case 'success': bgColor = 'var(--green-accent)'; textColor = 'black'; break;
-            case 'error': bgColor = 'var(--red-accent)'; textColor = 'white'; break;
-            case 'info': bgColor = 'var(--indigo-accent)'; textColor = 'white'; break;
-            case 'primary': 
-            default: bgColor = 'var(--primary-accent)'; textColor = 'white';
-        }
-        
-        // Light theme check for toast text color
-        if (!isDark && (type === 'success' || type === 'primary')) {
-             textColor = 'black';
-        } else if (!isDark && type === 'error') {
-             textColor = 'white'; // Red background needs white text
-        }
-
-
-        toast.style.backgroundColor = bgColor;
-        toast.style.color = textColor;
-        toast.className = `toast`;
-
-        el('toast-container').appendChild(toast);
-        setTimeout(() => {
-            toast.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-            toast.style.opacity = '0';
-            toast.style.transform = 'translateY(-20px)';
-            setTimeout(() => toast.remove(), 300);
-        }, 4000);
-    };
-
-    const createFloatingText = (text, container) => {
-        const floatingEl = document.createElement('div');
-        floatingEl.className = 'floating-text';
-        floatingEl.textContent = text;
-        container.appendChild(floatingEl);
-        setTimeout(() => floatingEl.remove(), 2000);
-    };
-    
-    const showModal = (title, text, loading = false) => {
-        el('modal-title').textContent = title;
-        el('modal-text').innerHTML = loading ? `<div class="flex items-center justify-center space-x-2"><div class="animate-spin rounded-full h-5 w-5 border-b-2" style="border-color: var(--primary-accent)"></div><span style="color: var(--text-primary)">Analiz yükleniyor...</span></div>` : text;
-        el('modal-close-button').disabled = loading;
-        el('modal-overlay').classList.add('show');
-    };
-
-    const applyTheme = (theme) => {
-        document.documentElement.setAttribute('data-theme', theme);
-        el('theme-toggle').checked = theme === 'dark';
-    };
-
-    // --- Market Logic ---
-    const updateMarketPrice = () => {
-        const updateCoinPrice = (coinKey, min, max, basePrice) => {
-            const currentPrice = state[coinKey];
-            const maxDelta = basePrice * 0.05; // %5 dalgalanma
-            const randomFactor = (Math.random() * maxDelta * 2) - maxDelta;
-            let newPrice = currentPrice + randomFactor;
-
-            newPrice = Math.max(min, Math.min(max, newPrice));
-            state[coinKey] = newPrice;
-            return newPrice;
-        };
-
-        // GC fiyatını güncelle
-        updateCoinPrice('gcPrice', 0.05, 0.20, defaultState.gcPrice); 
-        
-        // TON fiyatını güncelle (daha büyük dalgalanma)
-        updateCoinPrice('tonPrice', 2.00, 3.50, defaultState.tonPrice); 
-
-        // USDT fiyatı stabil kalsın (çok az dalgalanma)
-        updateCoinPrice('usdtPrice', 0.99, 1.01, defaultState.usdtPrice); 
-
-        // UI Güncelleme (Sadece GC fiyatını gösteriyoruz)
-        const priceEl = el('current-gc-price');
-        
-        // Trend Kontrolü (GC üzerinden)
-        const currentGCPrice = state.gcPrice;
-        const trend = currentGCPrice >= defaultState.gcPrice ? 'up' : 'down';
-        const trendIcon = currentGCPrice >= defaultState.gcPrice 
-            ? `<svg class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 17l-5-5h10l-5 5z" transform="rotate(180 10 10)"/></svg>` 
-            : `<svg class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 17l-5-5h10l-5 5z"/></svg>`;
-        
-        const trendText = currentGCPrice === defaultState.gcPrice ? 'Stabil' : (currentGCPrice > defaultState.gcPrice ? 'Yükseliş' : 'Düşüş');
-        const trendColor = currentGCPrice === defaultState.gcPrice ? 'var(--text-secondary)' : (currentGCPrice > defaultState.gcPrice ? 'var(--market-up)' : 'var(--market-down)');
-        
-        priceEl.textContent = currentGCPrice.toFixed(4);
-        
-        const trendEl = el('market-trend');
-        trendEl.style.color = trendColor;
-        el('trend-icon').innerHTML = trendIcon;
-        el('trend-text').textContent = trendText;
-    };
-
-
-    // --- Rendering and UI Logic ---
-    
-    // NEW: Base Rate Render Logic
-    const renderBaseRates = () => {
-        el('rate-gc').textContent = `${BASE_MINING_RATES.GC.toFixed(5)} GC/s`;
-        el('rate-ton').textContent = `${BASE_MINING_RATES.TON.toFixed(5)} TON/s`;
-        el('rate-usdt').textContent = `${BASE_MINING_RATES.USDT.toFixed(5)} USDT/s`;
-    };
-
-    const renderUpgradesUI = () => {
-        const container = el('upgrades-container');
-        container.innerHTML = '';
-        Object.keys(UPGRADE_CONFIG).forEach(key => {
-            const config = UPGRADE_CONFIG[key]; 
-            const level = state.upgradeLevels[key];
-            const cost = calculate.upgradeCost(key, level); 
-            const costUSD = cost * state.gcPrice; // Tüm yükseltmeler GC fiyatı üzerinden hesaplanır
-            
-            const canAffordGC = state.totalEarned >= cost;
-            const canAffordUSD = state.usdBalance >= costUSD;
-
-            const progress = Math.min((state.totalEarned / cost) * 100, 100);
-            
-            let effectDesc = '';
-            // Efekt açıklaması GC'nin base rate'ini kullanır, tüm kazım tiplerine uygulanır.
-            if (key === 'core') effectDesc = `Kazım Hızı: +${(config.baseRate * Math.pow(config.rateMultiplier, level + 1)).toFixed(6)} GC/s`;
-            if (key === 'cooling') effectDesc = `Verimlilik: x${(config.baseMultiplier + (level + 1) * config.multiplierBonus).toFixed(1)}`;
-            if (key === 'battery') effectDesc = `Süre: ${formatTime(config.durationBonus * (level + 1))}+`;
-
-
-            const template = `
-                <div class="ios-panel p-3">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-lg" style="background-color: var(--yellow-accent); color: #000;">${config.icon}</div>
-                        <div>
-                            <h3 class="font-bold text-base">${config.name} <span class="text-xs" style="color: var(--text-secondary);">Lv. ${level + 1}</span></h3>
-                            <p class="text-xs font-semibold" style="color: var(--primary-accent);">${effectDesc}</p>
+                    <!-- Proje Girişi -->
+                    <div>
+                        <label for="taskProject" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Proje</label>
+                        <div class="flex">
+                            <input type="text" id="taskProject" placeholder="Örn: İş, Ev" class="mt-1 block w-full border border-gray-300 rounded-l-md shadow-sm p-2 dark:bg-gray-700 dark:text-white dark:border-gray-600 focus:outline-none focus:ring-blue-500">
+                            <!-- Akıllı Kategori Butonu -->
+                            <button id="magicCategoryButton" class="mt-1 p-2 bg-indigo-500 text-white rounded-r-md hover:bg-indigo-600 focus:outline-none">
+                                ✨
+                            </button>
                         </div>
                     </div>
-                    <div class="mt-3 space-y-1">
-                        <div class="w-full progress-bar h-1.5"><div class="progress-bar-fill h-1.5" style="width: ${progress}%; background-color: var(--yellow-accent);"></div></div>
-                        
-                        <!-- PAYMENT OPTION 1: GEMINI COIN (GC) -->
-                        <button data-upgrade-type="${key}" data-currency="GC" class="btn upgrade-button w-full font-semibold py-2 rounded-xl text-sm" 
-                            style="background-color: ${canAffordGC ? 'var(--yellow-accent)' : 'var(--component-bg)'}; color: ${canAffordGC ? 'black' : 'var(--text-secondary)'};" ${canAffordGC ? '' : 'disabled'}>
-                            Yükselt (${cost.toFixed(4)} GC)
-                        </button>
-
-                        <!-- PAYMENT OPTION 2: SIMULATED TELEGRAM WALLET (USD) -->
-                        <button data-upgrade-type="${key}" data-currency="USD" class="btn telegram-pay-button w-full font-semibold py-2 rounded-xl text-sm mt-1" 
-                            style="background-color: ${canAffordUSD ? 'var(--indigo-accent)' : 'var(--component-bg)'}; color: ${canAffordUSD ? 'white' : 'var(--text-secondary)'};" ${canAffordUSD ? '' : 'disabled'}>
-                            <div class="flex items-center justify-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 mr-1">
-                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.35 6.49l-1.92 8.79c-.11.5-.47.65-.89.44l-3.35-2.47-1.62 1.57c-.18.18-.34.34-.65.34l.23-3.41L14.72 7.8c.2-.18-.04-.28-.3-.08L7.9 13.56l-3.23-.97c-.47-.15-.65-.47-.5-.92L5.85 5.6c.15-.45.47-.65.92-.5L18.42 7.7c.45.15.65.47.5.92z"/>
-                                </svg>
-                                Telegram Cüzdanı ile Öde (${costUSD.toFixed(2)} USD)
-                            </div>
-                        </button>
+                    <!-- Tekrarlama Seçimi -->
+                    <div>
+                        <label for="taskRepeat" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tekrarla</label>
+                        <select id="taskRepeat" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:text-white dark:border-gray-600 focus:outline-none focus:ring-blue-500">
+                            <option value="none" selected>Hiç</option>
+                            <option value="daily">Günlük</option>
+                            <option value="weekly">Haftalık</option>
+                            <option value="monthly">Aylık</option>
+                        </select>
                     </div>
-                </div>`;
-            container.innerHTML += template;
-        });
-        document.querySelectorAll('.upgrade-button').forEach(btn => btn.addEventListener('click', purchaseUpgrade));
-        document.querySelectorAll('.telegram-pay-button').forEach(btn => btn.addEventListener('click', purchaseUpgrade));
-    };
-    
-    const renderBoostsUI = () => {
-        const container = el('boosts-container');
-        container.innerHTML = '';
-        const isBoostActive = state.activeBoost.endTime > Date.now();
-
-        BOOST_CONFIG.forEach(boost => {
-            const canAfford = state.totalEarned >= boost.cost;
-            const isDisabled = !canAfford || isBoostActive;
-            const color = isBoostActive ? 'var(--red-accent)' : 'var(--green-accent)';
-            const buttonText = isBoostActive ? 'Zaten Güçlendirme Aktif' : `Etkinleştir (${boost.cost.toFixed(2)} GC)`;
-            
-            const template = `
-                <div class="ios-panel p-3">
-                    <h3 class="font-bold text-base">${boost.label} <span class="text-sm" style="color: var(--text-secondary);">(x${boost.multiplier})</span></h3>
-                    <p class="text-xs" style="color: var(--text-secondary);">${boost.desc}</p>
-                    <button data-boost-id="${boost.id}" class="btn boost-button w-full font-semibold py-2 rounded-xl mt-2 text-sm" style="background: ${isDisabled ? 'var(--component-bg)' : color}; color: ${isDisabled ? 'var(--text-secondary)' : 'white'};" ${isDisabled ? 'disabled' : ''}>
-                        ${buttonText}
-                    </button>
-                </div>`;
-            container.innerHTML += template;
-        });
-        document.querySelectorAll('.boost-button').forEach(btn => btn.addEventListener('click', purchaseBoost));
-    };
-
-    const renderStatsUI = () => {
-        const statsData = [
-            { label: 'GC Bakiyesi', value: state.totalEarned.toFixed(6) },
-            { label: 'TON Bakiyesi', value: state.totalTON.toFixed(6) },
-            { label: 'USDT Bakiyesi', value: state.totalUSDT.toFixed(6) },
-            { label: 'USD Cüzdanı', value: state.usdBalance.toFixed(2) },
-            { label: 'Toplam Staking Geliri (GC)', value: state.stats.totalStaked.toFixed(6) },
-            { label: 'Piyasa İşlemleri', value: state.stats.marketBuys + state.stats.marketSells },
-            { label: 'Kullanılan Güçlendirme', value: state.stats.boostsUsed },
-            { label: 'Yapılan Yükseltme', value: state.stats.upgradesPurchased },
-            { label: 'Davet Edilenler', value: state.friendsInvited },
-        ];
-        el('stats-container').innerHTML = statsData.map(stat => `
-            <div class="ios-panel p-3">
-                <p class="text-xs" style="color: var(--text-secondary);">${stat.label}</p>
-                <p class="font-bold text-xl">${stat.value}</p>
+                </div>
             </div>
-        `).join('');
-    };
 
-    const updateDashboardUI = () => {
-        const isMining = !!state.miningStartTime;
-        const sessionDuration = calculate.sessionDuration();
-        const elapsedTime = isMining ? Date.now() - state.miningStartTime : 0;
-        const timeLeft = sessionDuration - elapsedTime;
-        const isSessionFinished = timeLeft <= 0 && isMining;
+            <!-- Ana Ekleme Çubuğu -->
+            <div class="flex space-x-2 items-start">
+                <!-- Gelişmiş Seçenekleri Aç/Kapa Butonu -->
+                <button id="toggleAdvancedButton" class="p-3 border rounded-lg dark:border-gray-600 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                </button>
+                <input type="text" id="taskInput" placeholder="Yeni bir görev ekle..." class="flex-1 px-4 py-3 border border-gray-300 rounded-lg dark:bg-gray-700 dark:text-white dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button id="addTaskButton" class="px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    Ekle
+                </button>
+            </div>
+        </footer>
+    </div>
 
-        
-        // Miner Core Durumunu Güncelleme
-        const minerCoreEl = el('miner-core-el');
-        const isCoreActive = isMining && !isSessionFinished;
+    <!-- 5. Modal Pencereler (Gizli) -->
 
-        // NEW: Gezegen Rengini Güncelle
-        minerCoreEl.className = `relative w-full h-full flex items-center justify-center miner-core`;
-        if (isCoreActive) {
-            minerCoreEl.classList.add('miner-active', `coin-${state.currentMineType}`);
-        } else {
-            minerCoreEl.classList.remove('miner-active');
-        }
-
-        // NEW: Aktif Kazım Tipini ve Butonları Vurgula
-        document.querySelectorAll('.coin-select-btn').forEach(btn => {
-            btn.classList.remove('active');
-            if (btn.dataset.mineType === state.currentMineType) {
-                btn.classList.add('active');
-                // Aktif butona dinamik renkli gölgeyi uygula
-                const colorVar = `--${state.currentMineType === 'GC' ? 'primary' : state.currentMineType.toLowerCase()}-accent`;
-                btn.style.boxShadow = `0 0 0 3px ${getComputedStyle(document.documentElement).getPropertyValue(colorVar)}`;
-            } else {
-                 btn.style.boxShadow = 'none';
-            }
-        });
-        
-        // Madencilik ipucu metnini güncelle
-        if (isSessionFinished) {
-            el('miner-prompt-text').textContent = `24 saatlik kazım tamamlandı. Birikimi (${state.currentMineType}) almak için çekirdeğe dokunun.`;
-            minerCoreEl.classList.add('miner-finished'); // Yeni durum için class
-        } else if (isMining) {
-             el('miner-prompt-text').textContent = `Oturum aktif. Kazım: ${state.currentMineType}. Yeni kazıma başlamak için 24 saati bekleyin.`;
-        } else {
-             el('miner-prompt-text').textContent = `Madenciliği başlatmak için çekirdeğe dokunun. Kazım birimi: ${state.currentMineType}.`;
-        }
-
-        // Timer ve Progress Bar Güncellemesi
-        el('timer').textContent = formatTime(timeLeft);
-        const progressPercentage = Math.min(100, (elapsedTime / sessionDuration) * 100);
-        el('mining-progress-fill').style.width = `${progressPercentage}%`;
-        el('mining-progress-fill').style.backgroundColor = isSessionFinished ? 'var(--red-accent)' : 'var(--primary-accent)';
-
-        // Boost Durumu
-        const isBoosted = state.activeBoost.endTime > Date.now();
-        minerCoreEl.classList.toggle('miner-boosted', isBoosted);
-        
-        if (isBoosted) {
-            el('active-boost-status').classList.remove('hidden');
-            el('active-boost-status').textContent = `Güçlendirme Aktif: ${formatTime(state.activeBoost.endTime - Date.now())}`;
-        } else {
-            el('active-boost-status').classList.add('hidden');
-        }
-
-        // --- ANA HEADER BAKIYE GÜNCELLEMESİ (Dinamik) ---
-        const now = Date.now();
-        const currentBalance = getBalance(state.currentMineType);
-        
-        // UI Bakiye kısıtlaması (3 saniyede bir güncelleme)
-        if (now - lastBalanceUpdateUI >= BALANCE_UI_UPDATE_THROTTLE) {
-             el('main-earned-amount').textContent = currentBalance.toFixed(8);
-             el('usd-balance').textContent = state.usdBalance.toFixed(2);
-             lastBalanceUpdateUI = now;
-        }
-        
-        // Dinamik Etiket Güncellemesi
-        el('main-balance-label').textContent = `${state.currentMineType} BAKİYE`;
-
-
-        // --- YENİ: TÜM BAKİYELERİ GÖSTEREN PANEL GÜNCELLEMESİ ---
-        el('balance-gc').textContent = state.totalEarned.toFixed(4);
-        el('balance-ton').textContent = state.totalTON.toFixed(4);
-        el('balance-usdt').textContent = state.totalUSDT.toFixed(4);
-        el('balance-usd').textContent = state.usdBalance.toFixed(2);
-
-
-        el('earning-rate').textContent = `${calculate.miningRate().toFixed(5)} ${state.currentMineType}/s`;
-        el('total-hash-power').textContent = `${calculate.miningRate().toFixed(5)} ${state.currentMineType}/s`;
-    };
-    
-    const updateStakingUI = () => {
-        el('staked-amount').textContent = state.stakedAmount.toFixed(4);
-        el('unstake-button').disabled = state.stakedAmount <= 0;
-        
-        // Staking input'un rengini temaya göre ayarla
-        const isDark = state.settings.theme === 'dark';
-        const stakeInputEl = el('stake-input');
-        if (isDark) {
-            stakeInputEl.style.color = 'white';
-            stakeInputEl.style.borderColor = 'var(--component-bg)';
-            stakeInputEl.style.background = 'var(--component-bg)';
-        } else {
-            stakeInputEl.style.color = 'var(--text-primary)';
-            stakeInputEl.style.borderColor = 'var(--component-bg-hover)';
-            stakeInputEl.style.background = 'var(--component-bg)';
-        }
-    };
-    
-    const updateMarketTransactionCost = () => {
-        const amount = parseFloat(el('market-input-amount').value) || 0;
-        const cost = amount * state.gcPrice;
-        el('transaction-cost').textContent = `Tahmini Maliyet/Gelir: ${cost.toFixed(4)} USD`;
-        
-        // Market input'un rengini temaya göre ayarla
-        const isDark = state.settings.theme === 'dark';
-        const marketInputEl = el('market-input-amount');
-        if (isDark) {
-            marketInputEl.style.color = 'white';
-            marketInputEl.style.borderColor = 'var(--component-bg)';
-            marketInputEl.style.background = 'var(--component-bg)';
-        } else {
-            marketInputEl.style.color = 'var(--text-primary)';
-            marketInputEl.style.borderColor = 'var(--component-bg-hover)';
-            marketInputEl.style.background = 'var(--component-bg)';
-        }
-    };
-
-    // --- Action Handlers (Coin Selection) ---
-    const handleCoinSelect = (e) => {
-        const newMineType = e.currentTarget.dataset.mineType;
-        if (newMineType !== state.currentMineType) {
-            state.currentMineType = newMineType;
-            showToast(`Kazım birimi ${newMineType} olarak değiştirildi.`, 'info');
-            // Madencilik aktifse resetlemeden rengi değiştir
-            updateDashboardUI();
-        }
-    };
-
-
-    // --- Action Handlers (Market) ---
-    const handleMarketBuy = () => {
-        const amountGC = parseFloat(el('market-input-amount').value);
-        if (isNaN(amountGC) || amountGC <= 0) return showToast('Geçersiz miktar!', 'error');
-
-        const costUSD = amountGC * state.gcPrice;
-        
-        if (state.usdBalance >= costUSD) {
-            addBalance('USD', -costUSD);
-            addBalance('GC', amountGC);
-            state.stats.marketBuys++;
-            showToast(`${amountGC.toFixed(4)} GC satın alındı!`, 'success');
-        } else {
-            showToast('Yetersiz USD bakiyesi!', 'error');
-        }
-        el('market-input-amount').value = '';
-        updateMarketTransactionCost();
-    };
-
-    const handleMarketSell = () => {
-        const amountGC = parseFloat(el('market-input-amount').value);
-        if (isNaN(amountGC) || amountGC <= 0) return showToast('Geçersiz miktar!', 'error');
-
-        const revenueUSD = amountGC * state.gcPrice;
-        
-        if (state.totalEarned >= amountGC) {
-            addBalance('GC', -amountGC);
-            addBalance('USD', revenueUSD);
-            state.stats.marketSells++;
-            showToast(`${amountGC.toFixed(4)} GC satıldı. (+${revenueUSD.toFixed(2)} USD)`, 'success');
-        } else {
-            showToast('Yetersiz Gemini Coin bakiyesi!', 'error');
-        }
-        el('market-input-amount').value = '';
-        updateMarketTransactionCost();
-    };
-
-    const handleConversion = () => {
-        const fromCurrency = el('convert-from-currency').value;
-        const toCurrency = el('convert-to-currency').value;
-        const amount = parseFloat(el('convert-amount').value);
-
-        if (isNaN(amount) || amount <= 0) return showToast('Geçersiz dönüştürme miktarı!', 'error');
-        if (fromCurrency === toCurrency) return showToast('Aynı birime dönüştüremezsiniz!', 'error');
-
-        const fromBalance = getBalance(fromCurrency);
-        const fromPrice = getPrice(fromCurrency);
-        const toPrice = getPrice(toCurrency);
-
-        if (fromBalance < amount) return showToast(`Yetersiz ${fromCurrency} bakiyesi! (Mevcut: ${fromBalance.toFixed(4)})`, 'error');
-
-        // Dönüşüm hesaplaması: (Miktar * Çıkış Fiyatı) / Giriş Fiyatı
-        const valueInUSD = amount * fromPrice;
-        const receivedAmount = valueInUSD / toPrice;
-
-        // Bakiye güncellemeleri
-        deductBalance(fromCurrency, amount);
-        addBalance(toCurrency, receivedAmount);
-
-        showToast(`${amount.toFixed(4)} ${fromCurrency} -> ${receivedAmount.toFixed(4)} ${toCurrency} dönüştürüldü!`, 'success');
-        el('convert-amount').value = '';
-        updateConversionResult();
-    };
-
-    const updateConversionResult = () => {
-        const fromCurrency = el('convert-from-currency').value;
-        const toCurrency = el('convert-to-currency').value;
-        const amount = parseFloat(el('convert-amount').value) || 0;
-
-        if (fromCurrency === toCurrency) {
-             el('conversion-result').textContent = 'Tahmini Alınacak: Lütfen farklı birimler seçin.';
-             return;
-        }
-
-        const fromPrice = getPrice(fromCurrency);
-        const toPrice = getPrice(toCurrency);
-        
-        const valueInUSD = amount * fromPrice;
-        const receivedAmount = valueInUSD / toPrice;
-        
-        el('conversion-result').textContent = `Tahmini Alınacak: ${receivedAmount.toFixed(4)} ${toCurrency}`;
-    };
-
-
-    const handleWithdrawalRequest = () => {
-        const amountGC = parseFloat(el('withdrawal-input-amount').value);
-
-        if (isNaN(amountGC) || amountGC < MIN_WITHDRAWAL_GC) {
-             return showToast(`Çekim için minimum miktar ${MIN_WITHDRAWAL_GC.toFixed(0)} GC olmalıdır.`, 'error');
-        }
-        
-        if (state.totalEarned < amountGC) {
-            return showToast(`Yetersiz bakiye! Çekim için ${amountGC.toFixed(4)} GC'ye ihtiyacınız var.`, 'error');
-        }
-
-        if (state.friendsInvited < REQUIRED_INVITES) {
-            return showToast(`Çekim yapmak için ${REQUIRED_INVITES} arkadaş davet etmelisiniz. (Mevcut: ${state.friendsInvited})`, 'error');
-        }
-
-        // --- SUCCESSFUL WITHDRAWAL SIMULATION ---
-        
-        const usdValue = amountGC * state.gcPrice;
-        
-        deductBalance('GC', amountGC);
-        addBalance('USD', usdValue);
-        state.withdrawalRequests++;
-
-        el('withdrawal-input-amount').value = '';
-        
-        showToast(`Çekim talebiniz işleniyor. ${amountGC.toFixed(4)} GC (${usdValue.toFixed(2)} USD) bakiyenize eklendi!`, 'success');
-    };
-
-
-    // --- Action Handlers (Game) ---
-
-    const purchaseUpgrade = (e) => {
-        const type = e.currentTarget.dataset.upgradeType; 
-        const currency = e.currentTarget.dataset.currency;
-        const level = state.upgradeLevels[type];
-        const costGC = calculate.upgradeCost(type, level);
-
-        let deductionSuccessful = false;
-        
-        if (currency === 'GC') {
-            if (state.totalEarned >= costGC) {
-                deductBalance('GC', costGC);
-                deductionSuccessful = true;
-            } else {
-                showToast('Yetersiz Gemini Coin bakiyesi!', 'error');
-            }
-        } else if (currency === 'USD') {
-            const costUSD = costGC * state.gcPrice;
-            if (state.usdBalance >= costUSD) {
-                deductBalance('USD', costUSD);
-                deductionSuccessful = true;
-                showToast(`Telegram Cüzdanı ile ${costUSD.toFixed(2)} USD harcandı.`, 'info');
-            } else {
-                showToast('Yetersiz Telegram Cüzdanı (USD) bakiyesi!', 'error');
-            }
-        }
-
-        if (deductionSuccessful) {
-            state.upgradeLevels[type]++; 
-            state.stats.upgradesPurchased++;
-            showToast(`${UPGRADE_CONFIG[type].name} yükseltildi!`, 'success');
-            renderUpgradesUI();
-        }
-    };
-    
-    const purchaseBoost = (e) => {
-        const id = e.currentTarget.dataset.boostId; 
-        const boost = BOOST_CONFIG.find(b => b.id === id);
-
-        if (boost && state.totalEarned >= boost.cost && state.activeBoost.endTime <= Date.now()) {
-            deductBalance('GC', boost.cost);
-            state.activeBoost = { type: id, endTime: Date.now() + boost.duration };
-            state.stats.boostsUsed++;
-            showToast(`${boost.label} etkinleştirildi! Kazım hızı x${boost.multiplier}!`, 'success');
-            renderBoostsUI();
-        } else if (state.activeBoost.endTime > Date.now()) {
-            showToast('Zaten aktif bir güçlendirme var!', 'info');
-        } else {
-            showToast('Yetersiz bakiye!', 'error');
-        }
-    };
-
-    const startMining = () => {
-        if (state.miningStartTime) return; 
-
-        if (state.miningStartTime !== null && Date.now() - state.miningStartTime >= calculate.sessionDuration()) {
-             collectSessionEarnings();
-        }
-
-        state.miningStartTime = Date.now();
-        state.lastUpdateTimestamp = Date.now();
-        showToast(`24 saatlik ${state.currentMineType} madencilik oturumu başlatıldı!`, 'info');
-    };
-
-    const collectSessionEarnings = () => {
-        if (state.miningStartTime === null) return false;
-        
-        const sessionDuration = calculate.sessionDuration();
-        const elapsedTime = Date.now() - state.miningStartTime;
-        
-        if (elapsedTime >= sessionDuration) {
-            const finalRate = calculate.miningRate();
-            const totalEarnings = (sessionDuration / 1000) * finalRate;
+    <!-- Görev Düzenleme Modalı -->
+    <div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col">
+            <!-- Modal Başlık -->
+            <div class="p-4 border-b dark:border-gray-700">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Görevi Düzenle</h3>
+            </div>
             
-            // NEW: Kazancı doğru birime ekle
-            addBalance(state.currentMineType, totalEarnings);
+            <!-- Modal İçerik (Kaydırılabilir) -->
+            <div class="p-4 space-y-4 overflow-y-auto">
+                <input type="hidden" id="editTaskId">
+                <!-- Temel Görev Metni -->
+                <div>
+                    <label for="editTaskText" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Görev</label>
+                    <input type="text" id="editTaskText" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                </div>
+                <!-- Görev Notları -->
+                <div>
+                    <label for="editTaskNotes" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Notlar</label>
+                    <textarea id="editTaskNotes" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:text-white dark:border-gray-600" placeholder="Detaylar, linkler, telefon numaraları..."></textarea>
+                </div>
+                
+                <!-- Gelişmiş Seçenekler -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="editTaskDueDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Bitiş Tarihi</label>
+                        <input type="datetime-local" id="editTaskDueDate" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                    </div>
+                    <div>
+                        <label for="editTaskPriority" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Öncelik</label>
+                        <select id="editTaskPriority" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                            <option value="low">Düşük</option>
+                            <option value="medium">Orta</option>
+                            <option value="high">Yüksek</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="editTaskProject" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Proje</label>
+                        <input type="text" id="editTaskProject" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                    </div>
+                    <div>
+                        <label for="editTaskRepeat" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tekrarla</label>
+                        <select id="editTaskRepeat" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                            <option value="none">Hiç</option>
+                            <option value="daily">Günlük</option>
+                            <option value="weekly">Haftalık</option>
+                            <option value="monthly">Aylık</option>
+                        </select>
+                    </div>
+                </div>
 
-            state.stats.totalMined += totalEarnings;
+                <!-- Alt Görevler Bölümü -->
+                <div>
+                    <h4 class="text-md font-semibold text-gray-800 dark:text-gray-200 mb-2">Alt Görevler</h4>
+                    <div id="editSubtaskList" class="space-y-2">
+                        <!-- Alt görevler buraya eklenecek -->
+                    </div>
+                    <!-- Yeni Alt Görev Ekleme -->
+                    <div class="flex space-x-2 mt-2">
+                        <input type="text" id="newSubtaskInput" placeholder="Yeni alt görev" class="flex-1 border border-gray-300 rounded-md p-2 dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                        <button id="addSubtaskButton" class="p-2 bg-green-500 text-white rounded-md hover:bg-green-600">Ekle</button>
+                    </div>
+                </div>
+            </div>
             
-            state.miningStartTime = null; 
+            <!-- Modal Footer (Butonlar) -->
+            <div class="p-4 bg-gray-50 dark:bg-gray-900 border-t dark:border-gray-700 flex justify-end space-x-3">
+                <button id="cancelEditButton" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">İptal</button>
+                <button id="saveTaskButton" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rapor Modalı -->
+    <div id="reportModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col">
+            <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Haftalık Rapor</h3>
+                <button id="closeReportButton" class="p-1 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
             
-            showToast(`Oturumdan ${totalEarnings.toFixed(5)} ${state.currentMineType} toplandı!`, 'success');
-            return true;
-        }
-        return false;
-    }
+            <div class="p-4 space-y-4 overflow-y-auto">
+                <!-- İstatistikler -->
+                <div class="grid grid-cols-2 gap-4 text-center">
+                    <div class="p-3 bg-green-100 dark:bg-green-900 rounded-lg">
+                        <div id="reportCompleted" class="text-3xl font-bold text-green-700 dark:text-green-300">0</div>
+                        <div class="text-sm text-green-600 dark:text-green-400">Görev Tamamlandı (7 Gün)</div>
+                    </div>
+                    <div class="p-3 bg-yellow-100 dark:bg-yellow-900 rounded-lg">
+                        <div id="reportActive" class="text-3xl font-bold text-yellow-700 dark:text-yellow-300">0</div>
+                        <div class="text-sm text-yellow-600 dark:text-yellow-400">Aktif Görev</div>
+                    </div>
+                </div>
+                
+                <!-- Proje Dağılımı -->
+                <div>
+                    <h4 class="text-md font-semibold text-gray-800 dark:text-gray-200 mb-2">Proje Dağılımı (Aktif Görevler)</h4>
+                    <div id="reportProjectChart" class="bar-chart p-2 bg-gray-50 dark:bg-gray-900 rounded">
+                        <!-- Çubuklar buraya eklenecek -->
+                    </div>
+                    <div id="reportProjectLegend" class="flex flex-wrap gap-2 mt-2">
+                        <!-- Etiketler buraya eklenecek -->
+                    </div>
+                </div>
 
-    const handleMinerCoreClick = () => {
-        const isMining = !!state.miningStartTime;
-        const sessionDuration = calculate.sessionDuration();
-        const elapsedTime = isMining ? Date.now() - state.miningStartTime : 0;
-        const isSessionFinished = elapsedTime >= sessionDuration && isMining;
+                <!-- Akıllı Yorum -->
+                <div>
+                    <h4 class="text-md font-semibold text-gray-800 dark:text-gray-200 mb-2">Akıllı Yorum</h4>
+                    <p id="reportSummary" class="p-3 bg-blue-50 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-lg text-sm">
+                        Rapor oluşturuluyor...
+                    </p>
+                </div>
 
-        if (isSessionFinished) {
-            collectSessionEarnings();
-            startMining(); 
-        } else if (!isMining) {
-            startMining();
-        } else {
-             showToast('Madencilik oturumu zaten aktif. 24 saat bitmeden toplanamaz.', 'error');
-        }
-    };
+                <!-- Veri Yedekleme -->
+                <div>
+                    <h4 class="text-md font-semibold text-gray-800 dark:text-gray-200 mb-2">Veri Yönetimi</h4>
+                    <div class="flex space-x-2">
+                        <button id="exportDataButton" class="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm">
+                            Verileri Dışa Aktar (.json)
+                        </button>
+                        <label class_replacement="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm text-center cursor-pointer">
+                            Verileri İçe Aktar
+                            <input type="file" id="importDataInput" accept=".json" class="hidden">
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    const handleStaking = (e) => {
-        const action = e.currentTarget.id;
-        if (action === 'stake-button') {
-            const amount = parseFloat(el('stake-input').value);
-            if (!isNaN(amount) && amount > 0 && state.totalEarned >= amount) {
-                deductBalance('GC', amount);
-                state.stakedAmount += amount;
-                el('stake-input').value = '';
-                showToast(`${amount.toFixed(4)} GC kilitlendi!`, 'success');
-            } else {
-                showToast('Yetersiz bakiye veya geçersiz miktar!', 'error');
-            }
-        } else if (action === 'unstake-button') {
-            if(state.stakedAmount > 0){
-                const amount = state.stakedAmount;
-                addBalance('GC', amount);
-                state.stakedAmount = 0;
-                showToast(`${amount.toFixed(4)} GC çekildi!`, 'success');
-            }
-        }
-    };
-    
-    // YENİ: Davet Simülasyonu Fonksiyonu - KALDIRILDI
-    // const simulateInvite = () => {
-    //     state.friendsInvited++;
-    //     el('invited-count').textContent = state.friendsInvited;
-    //     showToast(`+1 Davet simüle edildi! Toplam: ${state.friendsInvited}`, 'success');
-    // };
-    
-    // --- External API Call (AI Analysis) ---
-    const getMarketAnalysis = async () => {
-        showModal('AI Piyasa Analizi', '', true);
+    <!-- "Bugün Odaklan" Modalı -->
+    <div id="focusModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col">
+            <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">🧠 Bugün Odaklan</h3>
+                <button id="closeFocusButton" class="p-1 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            
+            <div class="p-4 space-y-4 overflow-y-auto">
+                <p id="focusSummary" class="p-3 bg-blue-50 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-lg text-sm">
+                    Analiz ediliyor...
+                </p>
+                <ul id="focusTaskList" class="space-y-2">
+                    <!-- Odaklanılacak görevler buraya eklenecek -->
+                </ul>
+            </div>
+        </div>
+    </div>
 
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
-        const systemPrompt = "You are a world-class crypto market analyst. You provide short, engaging, and insightful market reports. Your tone is professional but slightly optimistic and futuristic. Write in Turkish.";
-        const userQuery = "Kurgusal kripto para birimimiz 'GEMINI COIN' hakkında kısa bir piyasa analizi raporu yaz. Yapay zeka ağlarıyla olan yenilikçi (kurgusal) entegrasyonunu, stabil işlem hızını ve Web3 ekosistemindeki potansiyel büyümesini vurgula. Bir paragrafı geçmesin. Raporda mutlaka 'Gemini Coin' adını kullan.";
+    <!-- Firebase ve Uygulama Mantığı -->
+    <script type="module">
+        // Firebase kütüphanelerini import ediyoruz
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            signInAnonymously, 
+            onAuthStateChanged, 
+            signInWithCustomToken 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            doc, 
+            setDoc, 
+            addDoc, 
+            updateDoc, 
+            deleteDoc, 
+            onSnapshot, 
+            collection, 
+            query, 
+            where, 
+            getDocs,
+            Timestamp,
+            // enableNetwork, // DÜZELTME: Bu modülde bulunmuyor
+            // disableNetwork, // DÜZELTME: Bu modülde bulunmuyor
+            enableIndexedDbPersistence, // DÜZELTME: 'enablePersistence' yerine bu kullanılır
+            writeBatch
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Canvas ortamı tarafından sağlanan konfigürasyon
+        // Bu ortamda (Canvas) çalışırken, __firebase_config otomatik olarak sağlanır.
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{"apiKey":"FALLBACK_KEY","authDomain":"FALLBACK_DOMAIN","projectId":"FALLBACK_PROJECT"}');
         
-        const payload = { 
-            contents: [{ parts: [{ text: userQuery }] }], 
-            systemInstruction: { parts: [{ text: systemPrompt }] }, 
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        // !! DEPLOYMENT NOTU !!
+        // Bu uygulamayı Canvas DIŞINDA yayınlarken (örn: Netlify, Firebase Hosting),
+        // Yukarıdaki satırı YORUM SATIRI yapın (// ile başlayın)
+        // ve aşağıdaki bloğu YORUMDAN ÇIKARIP kendi Firebase bilgilerinizle doldurun.
+        /*
+        const firebaseConfig = {
+            apiKey: "SENİN-API-ANAHTARIN",
+            authDomain: "SENİN-PROJE-IDN.firebaseapp.com",
+            projectId: "SENİN-PROJE-IDN",
+            storageBucket: "SENİN-PROJE-IDN.appspot.com",
+            messagingSenderId: "SENİN-SENDER-IDN",
+            appId: "SENİN-APP-IDN"
+        };
+        */
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+        // Global Değişkenler
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let app, auth, db, userId;
+        let tasksCollection, tasksListener = null;
+        let allTasks = []; // Tüm görevleri tutan yerel önbellek
+        let currentFilter = 'all'; // Mevcut filtre
+        let learnedCategories = {}; // Akıllı kategori için öğrenme havuzu
+        let notificationTimer = null; // Alarm bildirimleri için zamanlayıcı
+
+        // --- DOM Elementleri ---
+        const taskList = document.getElementById('taskList');
+        const taskInput = document.getElementById('taskInput');
+        const addTaskButton = document.getElementById('addTaskButton');
+        const searchBar = document.getElementById('searchBar');
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        
+        // Gelişmiş Seçenekler
+        const toggleAdvancedButton = document.getElementById('toggleAdvancedButton');
+        const advancedOptions = document.getElementById('advancedOptions');
+        const taskDueDate = document.getElementById('taskDueDate');
+        const taskPriority = document.getElementById('taskPriority');
+        const taskProject = document.getElementById('taskProject');
+        const magicCategoryButton = document.getElementById('magicCategoryButton');
+        const taskRepeat = document.getElementById('taskRepeat');
+
+        // Düzenleme Modalı
+        const editModal = document.getElementById('editModal');
+        const editTaskId = document.getElementById('editTaskId');
+        const editTaskText = document.getElementById('editTaskText');
+        const editTaskNotes = document.getElementById('editTaskNotes');
+        const editTaskDueDate = document.getElementById('editTaskDueDate');
+        const editTaskPriority = document.getElementById('editTaskPriority');
+        const editTaskProject = document.getElementById('editTaskProject');
+        const editTaskRepeat = document.getElementById('editTaskRepeat');
+        const cancelEditButton = document.getElementById('cancelEditButton');
+        const saveTaskButton = document.getElementById('saveTaskButton');
+        const editSubtaskList = document.getElementById('editSubtaskList');
+        const newSubtaskInput = document.getElementById('newSubtaskInput');
+        const addSubtaskButton = document.getElementById('addSubtaskButton');
+        
+        // Rapor Modalı
+        const reportModal = document.getElementById('reportModal');
+        const reportButton = document.getElementById('reportButton');
+        const closeReportButton = document.getElementById('closeReportButton');
+        const reportCompleted = document.getElementById('reportCompleted');
+        const reportActive = document.getElementById('reportActive');
+        const reportProjectChart = document.getElementById('reportProjectChart');
+        const reportProjectLegend = document.getElementById('reportProjectLegend');
+        const reportSummary = document.getElementById('reportSummary');
+        const exportDataButton = document.getElementById('exportDataButton');
+        const importDataInput = document.getElementById('importDataInput');
+
+        // Odaklanma Modalı
+        const focusModal = document.getElementById('focusModal');
+        const focusButton = document.getElementById('focusButton');
+        const closeFocusButton = document.getElementById('closeFocusButton');
+        const focusSummary = document.getElementById('focusSummary');
+        const focusTaskList = document.getElementById('focusTaskList');
+
+        // Tema Yönetimi
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIconSun = document.getElementById('themeIconSun');
+        const themeIconMoon = document.getElementById('themeIconMoon');
+        const htmlElement = document.documentElement;
+
+        // --- Öncelik ve Tarih Renkleri ---
+        const priorityColors = {
+            high: 'border-red-500 dark:border-red-400',
+            medium: 'border-yellow-500 dark:border-yellow-400',
+            low: 'border-green-500 dark:border-green-400',
+        };
+        const dateColors = {
+            overdue: 'bg-red-100 dark:bg-red-900',
+            today: 'bg-yellow-100 dark:bg-yellow-900',
+            default: 'bg-white dark:bg-gray-800'
         };
 
-        let responseText = 'Analiz alınamadı. API anahtarı boş olabilir veya bir hata oluştu.';
+        // --- Yardımcı Fonksiyonlar ---
 
-        try {
-            const response = await fetch(apiUrl, { 
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify(payload) 
-            });
-            if (!response.ok) throw new Error(`API error: ${response.status}`);
+        /**
+         * Tarihi 'YYYY-AA-GGTHH:SS' formatına dönüştürür (datetime-local input için).
+         * @param {Date | Timestamp} date - Tarih nesnesi veya Firestore Timestamp.
+         * @returns {string} Formatlanmış tarih string'i.
+         */
+        function formatDateTimeLocal(date) {
+            if (!date) return '';
+            if (date.toDate) date = date.toDate(); // Timestamp ise Date'e çevir
             
-            const result = await response.json();
-            responseText = result.candidates?.[0]?.content?.parts?.[0]?.text || 'Analiz alınamadı.';
-
-        } catch (error) {
-             console.error('Gemini API Hatası:', error);
-             responseText = `Analiz alınamadı. Detay: ${error.message}. Lütfen API anahtarını kontrol edin.`;
+            const pad = (num) => num.toString().padStart(2, '0');
+            const year = date.getFullYear();
+            const month = pad(date.getMonth() + 1);
+            const day = pad(date.getDate());
+            const hours = pad(date.getHours());
+            const minutes = pad(date.getMinutes());
+            
+            return `${year}-${month}-${day}T${hours}:${minutes}`;
         }
 
-        showModal('AI Piyasa Analizi', responseText, false);
-    };
+        /**
+         * Tarihi 'GG Ay YYYY, HH:SS' formatında güzel bir string'e dönüştürür.
+         * @param {Timestamp} timestamp - Firestore Timestamp.
+         * @returns {string} Formatlanmış tarih.
+         */
+        function formatReadableDate(timestamp) {
+            if (!timestamp) return '';
+            const date = timestamp.toDate();
+            return date.toLocaleString('tr-TR', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
 
+        /**
+         * Tarihin bugün mü, geçmişte mi olduğunu kontrol eder.
+         * @param {Timestamp} timestamp - Firestore Timestamp.
+         * @returns {'overdue' | 'today' | 'future'} Tarih durumu.
+         */
+        function checkDateStatus(timestamp) {
+            if (!timestamp) return null;
+            const now = new Date();
+            const taskDate = timestamp.toDate();
 
-    // --- Core Game Loop ---
-    const continuousUpdateLoop = () => {
-        const now = Date.now();
-        const deltaTime = now - state.lastUpdateTimestamp;
+            const isSameDay = (d1, d2) => 
+                d1.getFullYear() === d2.getFullYear() &&
+                d1.getMonth() === d2.getMonth() &&
+                d1.getDate() === d2.getDate();
 
-        if (deltaTime > 0) {
+            if (taskDate < now && !isSameDay(now, taskDate)) {
+                return 'overdue';
+            } else if (isSameDay(now, taskDate)) {
+                return 'today';
+            }
+            return 'future';
+        }
+
+        /**
+         * Ekranın köşesinde bir bildirim (toast) gösterir.
+         * @param {string} message - Gösterilecek mesaj.
+         * @param {number} duration - Milisaniye cinsinden süre.
+         */
+        function showToast(message, duration = 3000) {
+            const toastContainer = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            toastContainer.appendChild(toast);
+
+            // Gösterme animasyonu (CSS'te varsayılan)
             
-            // 1. Staking Kazancı Hesaplama
-            if (state.stakedAmount > 0) {
-                const earningsPerMs = (state.stakedAmount * STAKING_APY) / (365 * 24 * 60 * 60 * 1000);
-                const earned = deltaTime * earningsPerMs;
-                addBalance('GC', earned); // Staking her zaman GC kazandırır
-                state.stats.totalStaked += earned;
-                if(Math.random() < (deltaTime / 1000) * 0.1) createFloatingText(`+${earned.toFixed(5)} GC`, el('staking-reward-effect-container'));
+            // Gizleme zamanlayıcısı
+            setTimeout(() => {
+                toast.classList.add('hide');
+                // Animasyon bittikten sonra DOM'dan kaldır
+                toast.addEventListener('transitionend', () => {
+                    // Güvenlik kontrolü, belki zaten kaldırılmıştır
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, { once: true }); // Olayı sadece bir kez dinle
+            }, duration);
+        }
+
+        // --- Tema Yönetimi ---
+
+        function applyTheme(theme) {
+            if (theme === 'dark') {
+                htmlElement.classList.add('dark');
+                themeIconSun.classList.add('hidden');
+                themeIconMoon.classList.remove('hidden');
+            } else {
+                htmlElement.classList.remove('dark');
+                themeIconSun.classList.remove('hidden');
+                themeIconMoon.classList.add('hidden');
+            }
+        }
+
+        function toggleTheme() {
+            const currentTheme = htmlElement.classList.contains('dark') ? 'dark' : 'light';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            applyTheme(newTheme);
+            // Tercihi kaydet
+            try {
+                localStorage.setItem('theme', newTheme);
+            } catch (e) {
+                console.warn("localStorage'a erişilemedi. Tema tercihi kaydedilmedi.", e);
+            }
+        }
+
+        function loadTheme() {
+            let savedTheme = 'light'; // Varsayılan
+            try {
+                savedTheme = localStorage.getItem('theme') || 'light';
+            } catch (e) {
+                console.warn("localStorage'a erişilemedi. Varsayılan tema kullanılıyor.", e);
+            }
+            applyTheme(savedTheme);
+        }
+
+
+        // --- Firebase Başlatma ve Kimlik Doğrulama ---
+
+        async function initializeFirebase() {
+            try {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // Çevrimdışı desteği etkinleştir
+                // DÜZELTME: Fonksiyon adı enableIndexedDbPersistence olarak değiştirildi
+                await enableIndexedDbPersistence(db).catch((err) => {
+                    if (err.code == 'failed-precondition') {
+                        console.warn("Çevrimdışı kalıcılık birden fazla sekmede etkinleştirilemez.");
+                    } else if (err.code == 'unimplemented') {
+                        console.warn("Bu tarayıcı çevrimdışı kalıcılığı desteklemiyor.");
+                    }
+                });
+                
+                setupAuthListener();
+            } catch (error) {
+                console.error("Firebase başlatılamadı:", error);
+            }
+        }
+
+        function setupAuthListener() {
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    // Kullanıcı giriş yaptı, görevleri dinlemeye başla
+                    listenForTasks();
+                    // Alarm kontrolünü başlat
+                    startNotificationTimer();
+                } else {
+                    // Kullanıcı giriş yapmamış, token ile giriş yapmayı dene
+                    await attemptSignIn();
+                }
+            });
+        }
+
+        async function attemptSignIn() {
+            try {
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                    // onAuthStateChanged tetiklenecek
+                } else {
+                    await signInAnonymously(auth);
+                    // onAuthStateChanged tetiklenecek
+                }
+            } catch (error) {
+                console.error("Giriş hatası:", error);
+            }
+        }
+
+        // --- Görev CRUD (Create, Read, Update, Delete) Fonksiyonları ---
+
+        /**
+         * Firestore'dan görevleri dinler ve değişiklik olduğunda 'allTasks' dizisini günceller.
+         */
+        function listenForTasks() {
+            if (!userId) return;
+
+            // Zaten bir dinleyici varsa, önce onu durdur
+            if (tasksListener) {
+                tasksListener(); 
             }
 
-            // 2. Madencilik Kazancı ve Süre Takibi
-            if (state.miningStartTime) {
-                const sessionDuration = calculate.sessionDuration();
-                const elapsedTime = now - state.miningStartTime;
+            tasksCollection = collection(db, `artifacts/${appId}/users/${userId}/tasks`);
+            
+            // Görevleri createdAt'a (oluşturulma tarihi) göre azalan sırada (en yeni üstte)
+            // getirmek isterdik, ancak bu, Firebase'de özel bir indeks gerektirir.
+            // Bu yüzden tüm veriyi çekip istemci tarafında (client-side) sıralayacağız.
+            const q = query(tasksCollection);
 
-                if (elapsedTime >= sessionDuration) {
-                    state.miningStartTime = Date.now() - sessionDuration;
-                } else {
-                    const rate = calculate.miningRate();
-                    const earned = (deltaTime / 1000) * rate;
-                    
-                    // Kazancı doğru birime ekle
-                    addBalance(state.currentMineType, earned);
-                    state.stats.totalMined += earned;
+            tasksListener = onSnapshot(q, (snapshot) => {
+                allTasks = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+
+                // Akıllı kategori için hafızayı eğit
+                trainCategoryLearner(allTasks);
+
+                // Görevleri ekrana çiz
+                renderTasks();
+            }, (error) => {
+                console.error("Görevleri dinlerken hata:", error);
+            });
+        }
+
+        /**
+         * Yeni bir görevi Firestore'a ekler.
+         */
+        async function addTaskToDb() {
+            const text = taskInput.value.trim();
+            if (text === '') return;
+
+            // Gelişmiş seçenekleri al
+            const dueDateValue = taskDueDate.value ? Timestamp.fromDate(new Date(taskDueDate.value)) : null;
+            const priorityValue = taskPriority.value;
+            const projectValue = taskProject.value.trim();
+            const repeatValue = taskRepeat.value;
+
+            try {
+                await addDoc(tasksCollection, {
+                    text: text,
+                    completed: false,
+                    createdAt: Timestamp.now(),
+                    dueDate: dueDateValue,
+                    priority: priorityValue,
+                    project: projectValue,
+                    repeat: repeatValue,
+                    notes: "", // Başlangıçta notlar boş
+                    subtasks: [] // Başlangıçta alt görevler boş
+                });
+
+                // Giriş alanlarını temizle (gelişmiş panel açık kalsa bile)
+                taskInput.value = '';
+                taskDueDate.value = '';
+                taskPriority.value = 'medium';
+                taskProject.value = '';
+                taskRepeat.value = 'none';
+                
+                // Görevi ekledikten sonra paneli kapat
+                if(advancedOptions.classList.contains('open')) {
+                    toggleAdvancedOptions();
+                }
+
+                showToast("Görev eklendi!");
+            } catch (error) {
+                console.error("Görev eklenirken hata:", error);
+                showToast("Hata: Görev eklenemedi.", 3000);
+            }
+        }
+
+        /**
+         * Bir görevin 'completed' (tamamlanma) durumunu değiştirir.
+         * @param {string} id - Görev ID'si.
+         * @param {boolean} currentStatus - Görevin mevcut tamamlanma durumu.
+         */
+        async function toggleTaskCompleted(id, currentStatus) {
+            const task = allTasks.find(t => t.id === id);
+            if (!task) return;
+
+            // Tekrarlayan görev mantığı
+            if (!currentStatus && task.repeat !== 'none') {
+                const newDueDate = getNextRepeatDate(task.dueDate, task.repeat);
+                try {
+                    const taskRef = doc(db, `artifacts/${appId}/users/${userId}/tasks`, id);
+                    await updateDoc(taskRef, {
+                        // Tekrarlayan görevse, tamamlandı olarak işaretleme, sadece tarihini güncelle.
+                        // Eğer alt görevleri varsa, onları sıfırla.
+                        dueDate: newDueDate,
+                        subtasks: task.subtasks.map(sub => ({ ...sub, completed: false }))
+                    });
+                    showToast(`Görev ${task.repeat} olarak yinelendi!`);
+                } catch (error) {
+                    console.error("Tekrarlayan görev güncellenirken hata:", error);
+                }
+            } else {
+                // Normal görev veya tamamlanmamışa geri döndürme
+                try {
+                    const taskRef = doc(db, `artifacts/${appId}/users/${userId}/tasks`, id);
+                    await updateDoc(taskRef, {
+                        completed: !currentStatus
+                    });
+                } catch (error) {
+                    console.error("Görev durumu güncellenirken hata:", error);
                 }
             }
         }
-        state.lastUpdateTimestamp = now;
-        
-        // UI Güncellemeleri
-        updateDashboardUI(); 
-        updateStakingUI();
-        
-        requestAnimationFrame(continuousUpdateLoop);
-    };
-    
-    // --- Initialization ---
 
-    const initializeApp = () => {
-        loadState();
-        applyTheme(state.settings.theme); 
-        updateMarketPrice(); // Piyasayı ilk kez yükle
-        renderBaseRates(); // Base Rate'leri yükle
-
-        // Event Listeners Setup
-        document.querySelectorAll('.nav-button').forEach(button => {
-            button.addEventListener('click', () => {
-                document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active'));
-                button.classList.add('active');
-                document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
-                el(`page-${button.dataset.page}`).classList.add('active');
-                
-                // Sayfaya özel render çağrıları
-                if(button.dataset.page === 'upgrades') renderUpgradesUI();
-                if(button.dataset.page === 'stats') renderStatsUI();
-                if(button.dataset.page === 'settings') el('invited-count').textContent = state.friendsInvited;
-            });
-        });
-
-        // Miner Core Click Handler
-        el('miner-core-el').addEventListener('click', handleMinerCoreClick);
-        
-        // Coin Selector Handlers
-        document.querySelectorAll('.coin-select-btn').forEach(btn => {
-            btn.addEventListener('click', handleCoinSelect);
-        });
-
-        const geminiButton = el('gemini-analysis-button');
-        if (geminiButton) {
-            geminiButton.addEventListener('click', getMarketAnalysis);
+        /**
+         * Bir görevi Firestore'dan siler.
+         * @param {string} id - Görev ID'si.
+         */
+        async function deleteTask(id) {
+            try {
+                const taskRef = doc(db, `artifacts/${appId}/users/${userId}/tasks`, id);
+                await deleteDoc(taskRef);
+                showToast("Görev silindi.");
+            } catch (error) {
+                console.error("Görev silinirken hata:", error);
+                showToast("Hata: Görev silinemedi.");
+            }
         }
+
+        // --- Görevleri Ekrana Çizme (Render) ---
+
+        /**
+         * 'allTasks' dizisini filtreler, sıralar ve ekrana çizer.
+         */
+        function renderTasks() {
+            // 1. Filtrele (Arama ve Butonlar)
+            const searchTerm = searchBar.value.toLowerCase();
+            
+            const filteredTasks = allTasks.filter(task => {
+                // Filtre butonuna göre filtrele
+                const filterMatch = 
+                    (currentFilter === 'all') ||
+                    (currentFilter === 'active' && !task.completed) ||
+                    (currentFilter === 'completed' && task.completed);
+                
+                if (!filterMatch) return false;
+
+                // Arama terimine göre filtrele (Görev metni, proje veya notlar)
+                const searchMatch = 
+                    task.text.toLowerCase().includes(searchTerm) ||
+                    (task.project && task.project.toLowerCase().includes(searchTerm)) ||
+                    (task.notes && task.notes.toLowerCase().includes(searchTerm));
+                
+                return searchMatch;
+            });
+
+            // 2. Sırala
+            // Sıralama mantığı:
+            // 1. Tamamlanmamışlar üste
+            // 2. Bitiş tarihi olanlar (en yakın tarihli olanlar üste)
+            // 3. Önceliği yüksek olanlar üste
+            // 4. Oluşturulma tarihi (en yeni üste)
+            const sortedTasks = filteredTasks.sort((a, b) => {
+                // Tamamlanma durumu
+                if (a.completed !== b.completed) {
+                    return a.completed ? 1 : -1;
+                }
+                // Bitiş tarihi (Null olanlar sona)
+                if (a.dueDate && b.dueDate) {
+                    if (a.dueDate.seconds !== b.dueDate.seconds) {
+                        return a.dueDate.seconds - b.dueDate.seconds; // Yakın tarih üste
+                    }
+                } else if (a.dueDate) {
+                    return -1; // Sadece a'nın tarihi var, a üste
+                } else if (b.dueDate) {
+                    return 1; // Sadece b'nin tarihi var, b üste
+                }
+                // Öncelik (high=2, medium=1, low=0)
+                const priorityMap = { high: 2, medium: 1, low: 0 };
+                const priorityA = priorityMap[a.priority] || 1;
+                const priorityB = priorityMap[b.priority] || 1;
+                if (priorityA !== priorityB) {
+                    return priorityB - priorityA; // Yüksek öncelik üste
+                }
+                // Oluşturulma tarihi (En yeni üste)
+                return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+            });
+
+            // 3. Ekrana Çiz
+            taskList.innerHTML = ''; // Listeyi temizle
+            if (sortedTasks.length === 0) {
+                taskList.innerHTML = `
+                    <div class="text-center text-gray-500 dark:text-gray-400 mt-10">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        Tebrikler, hiç göreviniz yok!
+                    </div>`;
+                return;
+            }
+
+            sortedTasks.forEach(task => {
+                const taskElement = createTaskElement(task);
+                taskList.appendChild(taskElement);
+            });
+        }
+
+        /**
+         * Tek bir görev verisinden HTML elementi oluşturur.
+         * @param {object} task - Görev nesnesi.
+         * @returns {HTMLElement} Oluşturulan div elementi.
+         */
+        function createTaskElement(task) {
+            const div = document.createElement('div');
+            div.className = 'task-item'; // Kaydırma için
+            
+            // Tarih durumuna göre arka plan rengi
+            const dateStatus = checkDateStatus(task.dueDate);
+            const bgColor = task.completed ? 'bg-gray-200 dark:bg-gray-700' : (dateColors[dateStatus] || dateColors.default);
+            // Öncelik rengi (sol kenar)
+            const borderColor = priorityColors[task.priority] || 'border-transparent';
+
+            // Alt görev ilerlemesi
+            const totalSubtasks = task.subtasks?.length || 0;
+            const completedSubtasks = task.subtasks?.filter(s => s.completed).length || 0;
+            const progressText = totalSubtasks > 0 ? `[${completedSubtasks}/${totalSubtasks}]` : '';
+
+            // Görevin kendisi (kaydırılabilir içerik)
+            const contentDiv = document.createElement('div');
+            contentDiv.className = `task-content relative flex items-center p-3 rounded-lg shadow ${bgColor} border-l-4 ${borderColor}`;
+            
+            // 1. Checkbox
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = task.completed;
+            checkbox.className = 'h-6 w-6 rounded text-blue-500 border-gray-300 dark:border-gray-600 focus:ring-blue-500 mr-3 flex-shrink-0';
+            checkbox.addEventListener('change', () => toggleTaskCompleted(task.id, task.completed));
+            
+            // 2. Görev Metni ve Detayları
+            const textContainer = document.createElement('div');
+            textContainer.className = 'flex-1 min-w-0'; // Taşan metinler için
+            
+            // Görev Metni (Tıklanabilir - Alt görevleri açar/kapar)
+            const textSpan = document.createElement('span');
+            textSpan.textContent = task.text;
+            textSpan.className = `text-gray-900 dark:text-white ${task.completed ? 'line-through text-gray-500 dark:text-gray-400' : ''} ${totalSubtasks > 0 ? 'cursor-pointer font-medium' : ''}`;
+            if (totalSubtasks > 0) {
+                textSpan.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const sublist = div.querySelector('.subtask-list');
+                    if (sublist) {
+                        sublist.classList.toggle('open');
+                    }
+                });
+            }
+            
+            // Alt Başlık (Tarih, Proje, Not ikonu, Alt görev ilerlemesi)
+            const detailsContainer = document.createElement('div');
+            detailsContainer.className = 'text-sm text-gray-500 dark:text-gray-400 flex items-center flex-wrap gap-x-2';
+            
+            if (task.dueDate) {
+                const dateSpan = document.createElement('span');
+                dateSpan.textContent = formatReadableDate(task.dueDate);
+                if (dateStatus === 'overdue' && !task.completed) {
+                    dateSpan.className = 'font-bold text-red-600 dark:text-red-400';
+                }
+                detailsContainer.appendChild(dateSpan);
+            }
+            if (task.project) {
+                const projectBadge = document.createElement('span');
+                projectBadge.className = 'project-badge bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+                projectBadge.textContent = task.project;
+                detailsContainer.appendChild(projectBadge);
+            }
+            if (progressText) {
+                const progressSpan = document.createElement('span');
+                progressSpan.className = 'font-mono text-xs font-bold text-gray-600 dark:text-gray-300';
+                progressSpan.textContent = progressText;
+                detailsContainer.appendChild(progressSpan);
+            }
+            if (task.notes) {
+                const noteIcon = document.createElement('span');
+                noteIcon.textContent = '📝';
+                noteIcon.className = 'cursor-pointer';
+                noteIcon.title = task.notes; // Hover'da göster
+                noteIcon.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    showToast(`Not: ${task.notes}`, 5000);
+                });
+                detailsContainer.appendChild(noteIcon);
+            }
+
+            textContainer.appendChild(textSpan);
+            textContainer.appendChild(detailsContainer);
+
+            // 3. Düzenle Butonu (...)
+            const editButton = document.createElement('button');
+            editButton.className = 'ml-2 p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 flex-shrink-0';
+            editButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>';
+            editButton.addEventListener('click', () => openEditModal(task));
+
+            contentDiv.appendChild(checkbox);
+            contentDiv.appendChild(textContainer);
+            contentDiv.appendChild(editButton);
+
+            // Alt görev listesi (Gizli)
+            let subtaskList = null;
+            if (totalSubtasks > 0) {
+                subtaskList = document.createElement('div');
+                subtaskList.className = 'subtask-list pl-8 pr-4 py-2 bg-gray-50 dark:bg-gray-800 rounded-b-lg';
+                
+                task.subtasks.forEach((subtask, index) => {
+                    const subDiv = document.createElement('div');
+                    subDiv.className = 'flex items-center space-x-2';
+                    
+                    const subCheckbox = document.createElement('input');
+                    subCheckbox.type = 'checkbox';
+                    subCheckbox.checked = subtask.completed;
+                    subCheckbox.className = 'h-4 w-4 rounded text-blue-500 border-gray-300 dark:border-gray-600 focus:ring-blue-500';
+                    subCheckbox.addEventListener('change', () => toggleSubtask(task.id, index));
+                    
+                    const subText = document.createElement('span');
+                    subText.textContent = subtask.text;
+                    subText.className = `text-sm text-gray-700 dark:text-gray-300 ${subtask.completed ? 'line-through text-gray-500' : ''}`;
+                    
+                    subDiv.appendChild(subCheckbox);
+                    subDiv.appendChild(subText);
+                    subtaskList.appendChild(subDiv);
+                });
+            }
+
+            // Kaydırma Eylem (Swipe) Alanları (Gizli)
+            const swipeLeft = document.createElement('div');
+            swipeLeft.className = 'swipe-action left';
+            swipeLeft.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>'; // Çöp Kutusu
+            
+            const swipeRight = document.createElement('div');
+            swipeRight.className = 'swipe-action right';
+            swipeRight.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>'; // Onay İmi
+
+            div.appendChild(swipeLeft);
+            div.appendChild(swipeRight);
+            div.appendChild(contentDiv);
+            if (subtaskList) {
+                div.appendChild(subtaskList);
+            }
+
+            // Kaydırma (Swipe) Mantığını Ekle
+            setupSwipeActions(div, contentDiv, task);
+
+            return div;
+        }
+
+        // --- Görev Düzenleme Modalı Fonksiyonları ---
+
+        function openEditModal(task) {
+            editTaskId.value = task.id;
+            editTaskText.value = task.text;
+            editTaskNotes.value = task.notes || '';
+            editTaskDueDate.value = formatDateTimeLocal(task.dueDate);
+            editTaskPriority.value = task.priority || 'medium';
+            editTaskProject.value = task.project || '';
+            editTaskRepeat.value = task.repeat || 'none';
+
+            // Alt görevleri modal'a yükle
+            renderSubtasksInModal(task.subtasks || []);
+
+            editModal.classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            editModal.classList.add('hidden');
+            // Girdi alanlarını temizle (güvenlik için)
+            editTaskId.value = '';
+            editTaskText.value = '';
+            editTaskNotes.value = '';
+            editTaskDueDate.value = '';
+            editTaskPriority.value = 'medium';
+            editTaskProject.value = '';
+            editTaskRepeat.value = 'none';
+            editSubtaskList.innerHTML = '';
+            newSubtaskInput.value = '';
+        }
+
+        async function saveTaskChanges() {
+            const id = editTaskId.value;
+            if (!id) return;
+
+            const updatedTask = {
+                text: editTaskText.value.trim(),
+                notes: editTaskNotes.value.trim(),
+                dueDate: editTaskDueDate.value ? Timestamp.fromDate(new Date(editTaskDueDate.value)) : null,
+                priority: editTaskPriority.value,
+                project: editTaskProject.value.trim(),
+                repeat: editTaskRepeat.value,
+                // Alt görevler 'subtasks' global değişkeninden (veya DOM'dan) alınmalı
+                subtasks: getSubtasksFromModal()
+            };
+
+            if (updatedTask.text === '') {
+                showToast("Görev metni boş olamaz!", 3000);
+                return;
+            }
+
+            try {
+                const taskRef = doc(db, `artifacts/${appId}/users/${userId}/tasks`, id);
+                await updateDoc(taskRef, updatedTask);
+                showToast("Görev güncellendi.");
+                closeEditModal();
+            } catch (error) {
+                console.error("Görev güncellenirken hata:", error);
+                showToast("Hata: Görev güncellenemedi.");
+            }
+        }
+
+        // --- Alt Görev (Subtask) Fonksiyonları ---
+
+        /**
+         * Düzenleme modalındaki alt görevleri DOM'a çizer.
+         */
+        function renderSubtasksInModal(subtasks) {
+            editSubtaskList.innerHTML = '';
+            if (!subtasks || subtasks.length === 0) {
+                editSubtaskList.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">Alt görev yok.</p>';
+                return;
+            }
+            subtasks.forEach((subtask, index) => {
+                const subDiv = document.createElement('div');
+                subDiv.className = 'flex items-center space-x-2 p-2 bg-gray-100 dark:bg-gray-700 rounded';
+                subDiv.dataset.index = index; // Sıralama için
+
+                const subCheckbox = document.createElement('input');
+                subCheckbox.type = 'checkbox';
+                subCheckbox.checked = subtask.completed;
+                subCheckbox.className = 'subtask-modal-checkbox h-4 w-4 rounded text-blue-500 border-gray-300 dark:border-gray-600 focus:ring-blue-500';
+                
+                const subText = document.createElement('input');
+                subText.type = 'text';
+                subText.value = subtask.text;
+                subText.className = `subtask-modal-text flex-1 bg-transparent focus:outline-none ${subtask.completed ? 'line-through text-gray-500' : 'dark:text-white'}`;
+                
+                const deleteButton = document.createElement('button');
+                deleteButton.innerHTML = '🗑️';
+                deleteButton.className = 'text-sm p-1 hover:text-red-500';
+                deleteButton.onclick = () => {
+                    subDiv.remove(); // Sadece DOM'dan kaldır, kaydet'e basınca güncellenecek
+                };
+
+                subDiv.appendChild(subCheckbox);
+                subDiv.appendChild(subText);
+                subDiv.appendChild(deleteButton);
+                editSubtaskList.appendChild(subDiv);
+            });
+        }
+
+        /**
+         * Düzenleme modalındaki alt görevleri okuyup bir diziye dönüştürür.
+         */
+        function getSubtasksFromModal() {
+            const subtaskElements = editSubtaskList.querySelectorAll('.flex');
+            const subtasks = [];
+            subtaskElements.forEach(el => {
+                const textInput = el.querySelector('.subtask-modal-text');
+                const checkbox = el.querySelector('.subtask-modal-checkbox');
+                if (textInput && checkbox) {
+                    subtasks.push({
+                        text: textInput.value,
+                        completed: checkbox.checked
+                    });
+                }
+            });
+            return subtasks;
+        }
+
+        /**
+         * Yeni alt görevi (sadece düzenleme modalında) DOM'a ekler.
+         */
+        function addNewSubtaskToModal() {
+            const text = newSubtaskInput.value.trim();
+            if (text === '') return;
+
+            // "Alt görev yok" yazısını kaldır
+            const placeholder = editSubtaskList.querySelector('p');
+            if (placeholder) placeholder.remove();
+
+            const subtask = { text: text, completed: false };
+            // renderSubtasksInModal'ın yaptığıyla aynı elementi oluştur
+            const subDiv = document.createElement('div');
+            subDiv.className = 'flex items-center space-x-2 p-2 bg-gray-100 dark:bg-gray-700 rounded';
+            
+            const subCheckbox = document.createElement('input');
+            subCheckbox.type = 'checkbox';
+            subCheckbox.checked = false;
+            subCheckbox.className = 'subtask-modal-checkbox h-4 w-4 rounded text-blue-500 border-gray-300 dark:border-gray-600 focus:ring-blue-500';
+            
+            const subText = document.createElement('input');
+            subText.type = 'text';
+            subText.value = text;
+            subText.className = 'subtask-modal-text flex-1 bg-transparent focus:outline-none dark:text-white';
+            
+            const deleteButton = document.createElement('button');
+            deleteButton.innerHTML = '🗑️';
+            deleteButton.className = 'text-sm p-1 hover:text-red-500';
+            deleteButton.onclick = () => {
+                subDiv.remove();
+            };
+
+            subDiv.appendChild(subCheckbox);
+            subDiv.appendChild(subText);
+            subDiv.appendChild(deleteButton);
+            editSubtaskList.appendChild(subDiv);
+            
+            newSubtaskInput.value = ''; // Input'u temizle
+        }
+
+        /**
+         * Ana listedeki alt görev checkbox'ını işler.
+         */
+        async function toggleSubtask(taskId, subtaskIndex) {
+            const task = allTasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            // Kopyasını oluştur ve güncelle
+            const newSubtasks = [...task.subtasks];
+            newSubtasks[subtaskIndex].completed = !newSubtasks[subtaskIndex].completed;
+
+            // Ana görevin tamamlanma durumunu kontrol et
+            // Tüm alt görevler tamamlandıysa, ana görevi de tamamla
+            const allSubtasksCompleted = newSubtasks.every(s => s.completed);
+            
+            try {
+                const taskRef = doc(db, `artifacts/${appId}/users/${userId}/tasks`, taskId);
+                await updateDoc(taskRef, {
+                    subtasks: newSubtasks,
+                    completed: allSubtasksCompleted // Ana görevi de güncelle
+                });
+                
+                if (allSubtasksCompleted && task.repeat !== 'none') {
+                    // Eğer tüm alt görevler tamamlandıysa ve bu tekrarlayan bir görevse,
+                    // görevi yenile (toggleTaskCompleted mantığını taklit et)
+                    await toggleTaskCompleted(taskId, false); // false yolluyoruz ki yenileme tetiklensin
+                }
+                
+            } catch (error) {
+                console.error("Alt görev güncellenirken hata:", error);
+            }
+        }
+
+
+        // --- "Akıllı" Özellikler (Yerel) ---
+
+        /**
+         * Görev listesinden kelime ve proje eşleşmelerini öğrenir.
+         */
+        function trainCategoryLearner(tasks) {
+            learnedCategories = {}; // Hafızayı sıfırla
+            tasks.forEach(task => {
+                if (task.project) {
+                    const words = task.text.toLowerCase().split(/\s+/); // Kelimelere ayır
+                    words.forEach(word => {
+                        if (word.length > 3) { // Çok kısa kelimeleri (ve, bir vb.) es geç
+                            if (!learnedCategories[word]) {
+                                learnedCategories[word] = {};
+                            }
+                            // Bu kelimenin bu projede kaç kez geçtiğini say
+                            const count = (learnedCategories[word][task.project] || 0) + 1;
+                            learnedCategories[word][task.project] = count;
+                        }
+                    });
+                }
+            });
+        }
+
+        /**
+         * ✨ Butonu: Girilen göreve göre proje önerir.
+         */
+        function suggestCategory() {
+            const text = taskInput.value.toLowerCase();
+            const words = text.split(/\s+/);
+            const suggestions = {};
+
+            words.forEach(word => {
+                if (learnedCategories[word]) {
+                    Object.keys(learnedCategories[word]).forEach(project => {
+                        const score = learnedCategories[word][project];
+                        suggestions[project] = (suggestions[project] || 0) + score;
+                    });
+                }
+            });
+
+            // En yüksek skorlu projeyi bul
+            let bestProject = '';
+            let maxScore = 0;
+            Object.keys(suggestions).forEach(project => {
+                if (suggestions[project] > maxScore) {
+                    maxScore = suggestions[project];
+                    bestProject = project;
+                }
+            });
+
+            if (bestProject) {
+                taskProject.value = bestProject;
+                showToast(`Proje önerildi: ${bestProject}`);
+            } else {
+                showToast("Uygun bir proje önerisi bulunamadı.");
+            }
+        }
+
+        /**
+         * 🧠 Butonu: Odaklanma modalını açar ve yerel olarak analiz yapar.
+         */
+        function showFocusModal() {
+            const activeTasks = allTasks.filter(t => !t.completed);
+            
+            if (activeTasks.length === 0) {
+                focusSummary.textContent = "Harika! Hiç aktif göreviniz yok. Rahatlayabilirsiniz.";
+                focusTaskList.innerHTML = '';
+                focusModal.classList.remove('hidden');
+                return;
+            }
+
+            const now = new Date();
+            const priorityMap = { high: 3, medium: 2, low: 1 };
+
+            const scoredTasks = activeTasks.map(task => {
+                let score = 0;
+                // Öncelik puanı
+                score += priorityMap[task.priority] || 2;
+                
+                // Tarih puanı
+                if (task.dueDate) {
+                    const taskDate = task.dueDate.toDate();
+                    const diffDays = (taskDate - now) / (1000 * 60 * 60 * 24);
+
+                    if (diffDays < -1) { // 1 günden fazla gecikmiş
+                        score += 100;
+                    } else if (diffDays < 0) { // Bugün veya dün gecikmiş
+                        score += 50;
+                    } else if (diffDays < 1) { // Bugün son günü
+                        score += 25;
+                    } else if (diffDays < 3) { // 3 gün içinde
+                        score += 10;
+                    }
+                }
+                
+                // Alt görevi olmayanlar (daha hızlı bitirilebilir)
+                if (!task.subtasks || task.subtasks.length === 0) {
+                    score += 5;
+                }
+                
+                return { ...task, score };
+            });
+
+            // En yüksek puanlı 5 görevi al
+            const focusList = scoredTasks.sort((a, b) => b.score - a.score).slice(0, 5);
+
+            // Akıllı özeti oluştur
+            const overdueCount = focusList.filter(t => t.dueDate && t.dueDate.toDate() < now).length;
+            let summaryText = `Şu anda ${activeTasks.length} aktif göreviniz var. `;
+            if (overdueCount > 0) {
+                summaryText += `Bunlardan ${overdueCount} tanesinin tarihi geçmiş görünüyor. `;
+                summaryText += "En iyisi bunlara öncelik vererek başlayalım!";
+            } else if (focusList.length > 0) {
+                summaryText += `İşte başlamak için en mantıklı ${focusList.length} görev:`;
+            } else {
+                summaryText += "Görünüşe göre her şey kontrol altında!";
+            }
+            focusSummary.textContent = summaryText;
+
+            // Odak listesini modal'a çiz
+            focusTaskList.innerHTML = '';
+            focusList.forEach(task => {
+                // Görev elementini klonla (basitleştirilmiş versiyon)
+                const taskDiv = document.createElement('div');
+                taskDiv.className = 'flex items-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg';
+                
+                const taskText = document.createElement('span');
+                taskText.className = 'flex-1 text-gray-900 dark:text-white';
+                taskText.textContent = task.text;
+                
+                if (task.project) {
+                    const projectBadge = document.createElement('span');
+                    projectBadge.className = 'ml-2 project-badge bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+                    projectBadge.textContent = task.project;
+                    taskText.appendChild(projectBadge);
+                }
+                
+                taskDiv.appendChild(taskText);
+                focusTaskList.appendChild(taskDiv);
+            });
+
+            focusModal.classList.remove('hidden');
+        }
+
+        /**
+         * 📊 Butonu: Rapor modalını açar ve istatistikleri çizer.
+         */
+        function showReportModal() {
+            const activeTasks = allTasks.filter(t => !t.completed);
+            const now = new Date();
+            const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+            // 1. Son 7 günde tamamlananlar
+            const completedLast7Days = allTasks.filter(t => 
+                t.completed && t.createdAt.toDate() > sevenDaysAgo // Veya 'completedAt' tarihi tutulabilir
+            ).length;
+
+            // 2. Aktif görev sayısı
+            reportCompleted.textContent = completedLast7Days;
+            reportActive.textContent = activeTasks.length;
+            
+            // 3. Proje Dağılımı (Aktif görevler üzerinden)
+            const projectCounts = {};
+            let maxCount = 0;
+            activeTasks.forEach(task => {
+                const project = task.project || 'Diğer';
+                projectCounts[project] = (projectCounts[project] || 0) + 1;
+                if (projectCounts[project] > maxCount) {
+                    maxCount = projectCounts[project];
+                }
+            });
+
+            reportProjectChart.innerHTML = '';
+            reportProjectLegend.innerHTML = '';
+            
+            const colors = ['bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-red-500', 'bg-indigo-500', 'bg-purple-500'];
+            let colorIndex = 0;
+
+            if (Object.keys(projectCounts).length === 0) {
+                reportProjectChart.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">Aktif proje yok.</p>';
+            }
+
+            for (const project in projectCounts) {
+                const count = projectCounts[project];
+                const heightPercentage = maxCount > 0 ? (count / maxCount) * 100 : 0;
+                
+                // Grafik Çubuğu
+                const bar = document.createElement('div');
+                bar.className = `bar ${colors[colorIndex % colors.length]}`;
+                bar.style.height = `${heightPercentage}%`;
+                bar.title = `${project}: ${count} görev`;
+                reportProjectChart.appendChild(bar);
+                
+                // Etiket (Legend)
+                const legendItem = document.createElement('div');
+                legendItem.className = 'flex items-center text-sm';
+                legendItem.innerHTML = `
+                    <span class="h-3 w-3 rounded-full ${colors[colorIndex % colors.length]} mr-1.5"></span>
+                    <span class="text-gray-700 dark:text-gray-300">${project} (${count})</span>
+                `;
+                reportProjectLegend.appendChild(legendItem);
+                
+                colorIndex++;
+            }
+
+            // 4. Akıllı Yorum
+            let summary = `Son 7 günde ${completedLast7Days} görev tamamladınız. `;
+            if (activeTasks.length > 0) {
+                summary += `Şu anda ${activeTasks.length} aktif göreviniz var. `;
+                const overdue = activeTasks.filter(t => t.dueDate && t.dueDate.toDate() < now && !t.completed).length;
+                if (overdue > 0) {
+                    summary += `Bunlardan ${overdue} tanesinin tarihi geçmiş görünüyor. Odaklanma zamanı!`;
+                } else {
+                    summary += "Her şey yolunda görünüyor, devam edin!";
+                }
+            } else {
+                summary += "Tüm görevler tamamlanmış, harika iş!";
+            }
+            reportSummary.textContent = summary;
+
+            reportModal.classList.remove('hidden');
+        }
+
+        // --- Tekrarlayan Görev Mantığı ---
+
+        /**
+         * Bir sonraki tekrarlama tarihini hesaplar.
+         * @param {Timestamp} currentDueDate - Mevcut bitiş tarihi.
+         * @param {'daily' | 'weekly' | 'monthly'} repeatType - Tekrarlama tipi.
+         * @returns {Timestamp} Yeni bitiş tarihi.
+         */
+        function getNextRepeatDate(currentDueDate, repeatType) {
+            // Eğer bir bitiş tarihi yoksa, bugünden itibaren hesapla
+            const baseDate = currentDueDate ? currentDueDate.toDate() : new Date();
+            // Tarihin mevcut saatini koru
+            const newDate = new Date(baseDate.getTime());
+
+            // Her zaman "bugünden sonraya" ayarla
+            const now = new Date();
+            if (newDate < now) {
+                newDate = new Date();
+                // Orijinal saati koru
+                newDate.setHours(baseDate.getHours());
+                newDate.setMinutes(baseDate.getMinutes());
+            }
+
+            switch (repeatType) {
+                case 'daily':
+                    newDate.setDate(newDate.getDate() + 1);
+                    break;
+                case 'weekly':
+                    newDate.setDate(newDate.getDate() + 7);
+                    break;
+                case 'monthly':
+                    newDate.setMonth(newDate.getMonth() + 1);
+                    break;
+                default:
+                    return Timestamp.fromDate(newDate); // Değişiklik yapma
+            }
+            return Timestamp.fromDate(newDate);
+        }
+
+        // --- Alarm ve Bildirim Mantığı ---
+
+        /**
+         * Görevleri periyodik olarak kontrol eder ve bildirim gönderir.
+         */
+        function startNotificationTimer() {
+            if (notificationTimer) {
+                clearInterval(notificationTimer);
+            }
+            // Her 15 saniyede bir kontrol et
+            notificationTimer = setInterval(checkTaskAlarms, 15000);
+        }
+
+        function checkTaskAlarms() {
+            const now = new Date().getTime();
+            const fiveMinutesInMs = 5 * 60 * 1000;
+
+            allTasks.forEach(task => {
+                if (!task.completed && task.dueDate) {
+                    const taskTime = task.dueDate.toDate().getTime();
+                    const diff = taskTime - now;
+
+                    // 0 ile 5 dakika arasında mı VE daha önce bildirilmedi mi?
+                    if (diff > 0 && diff <= fiveMinutesInMs) {
+                        // Basit bir "bildirildi" bayrağı için localStorage kullanıyoruz
+                        // (Sayfa yenilense bile hatırlamak için)
+                        let notified = false;
+                        try {
+                            notified = localStorage.getItem(`notified_${task.id}`);
+                        } catch (e) {}
+
+                        if (!notified) {
+                            sendNotification(task);
+                            try {
+                                localStorage.setItem(`notified_${task.id}`, 'true');
+                            } catch (e) {}
+                        }
+                    }
+                }
+            });
+        }
+
+        /**
+         * Tarayıcıya bildirim gönderir.
+         */
+        function sendNotification(task) {
+            const title = 'Görev Yaklaşıyor!';
+            const options = {
+                body: `5 dakika kaldı: ${task.text}`,
+                icon: './favicon.ico' // Buraya bir ikon URL'si eklenebilir
+            };
+
+            if ('Notification' in window) {
+                if (Notification.permission === 'granted') {
+                    new Notification(title, options);
+                } else if (Notification.permission !== 'denied') {
+                    // İzin zaten reddedilmediyse, tekrar iste
+                    Notification.requestPermission().then(permission => {
+                        if (permission === 'granted') {
+                            new Notification(title, options);
+                        }
+                    });
+                }
+            } else {
+                // Tarayıcı Bildirimleri desteklemiyorsa, toast göster
+                showToast(options.body, 5000);
+            }
+        }
+
+        /**
+         * Sayfa yüklendiğinde bildirim izni ister.
+         */
+        function requestNotificationPermission() {
+            if ('Notification' in window) {
+                if (Notification.permission === 'default') {
+                    // Sadece 'default' ise (ne evet ne hayır) sor
+                    Notification.requestPermission();
+                }
+            }
+        }
+
+        // --- Kaydırma (Swipe) Hareketleri Mantığı ---
+
+        function setupSwipeActions(taskElement, contentElement, task) {
+            let startX = 0;
+            let currentX = 0;
+            let isSwiping = false;
+            const threshold = 80; // Kaydırmayı tetiklemek için gereken minimum piksel
+
+            function onTouchStart(e) {
+                // Sadece tek parmakla dokunmayı algıla
+                if (e.touches.length !== 1) return;
+                startX = e.touches[0].clientX;
+                currentX = startX;
+                isSwiping = true;
+                // Kaydırma başlarken animasyonu kaldır
+                contentElement.style.transition = 'none';
+            }
+
+            function onTouchMove(e) {
+                if (!isSwiping || e.touches.length !== 1) return;
+                
+                currentX = e.touches[0].clientX;
+                let diffX = currentX - startX;
+
+                // Sadece yatay kaydırmaya izin ver
+                // (Dikey kaydırma (scroll) ile çakışmayı önlemek için)
+                // Bu örnekte, 'touch-action: pan-y' CSS ile ayarlandı,
+                // bu yüzden dikey kaydırma tarayıcı tarafından yönetilir.
+                
+                // Görevi tamamladıysa, sola kaydırmaya izin verme
+                if (task.completed && diffX < 0) diffX = 0;
+                // Görevi tamamlamadıysa, sağa kaydırmaya izin verme
+                if (!task.completed && diffX > 0) diffX = 0;
+
+                // Kaydırmayı sınırla (örn: 120px)
+                if (Math.abs(diffX) > 120) {
+                    diffX = diffX > 0 ? 120 : -120;
+                }
+                
+                // İçeriği hareket ettir
+                contentElement.style.transform = `translateX(${diffX}px)`;
+            }
+
+            async function onTouchEnd(e) {
+                if (!isSwiping) return;
+                isSwiping = false;
+
+                const diffX = currentX - startX;
+                
+                // Animasyonu geri ekle
+                contentElement.style.transition = 'transform 0.3s ease-out';
+                
+                if (!task.completed && diffX < -threshold) { // Sola kaydırma (Sil)
+                    // Hareketi tamamla (görevi ekran dışına kaydır)
+                    contentElement.style.transform = 'translateX(-100%)';
+                    // Animasyon bittikten sonra sil
+                    setTimeout(async () => {
+                        await deleteTask(task.id);
+                        // renderTasks() zaten onSnapshot tarafından tetiklenecek
+                        // ama anında geri bildirim için elementi manuel de kaldırabiliriz
+                        taskElement.remove();
+                    }, 300);
+                } else if (task.completed && diffX > threshold) { // Sağa kaydırma (Tamamla/Geri Al)
+                    // Hareketi tamamla
+                    contentElement.style.transform = 'translateX(100%)';
+                    setTimeout(async () => {
+                        await toggleTaskCompleted(task.id, task.completed);
+                        // Geri kaydırmadan önce DOM'dan kaldır
+                        taskElement.remove();
+                    }, 300);
+                } else {
+                    // Eşiği geçmedi, geri çek
+                    contentElement.style.transform = 'translateX(0px)';
+                }
+            }
+            
+            // Mouse olayları (masaüstü için - dokunmatik simülasyonu)
+            // Gerçek bir mobil deneyim için bunlar atlanabilir,
+            // ama test için kullanışlıdır.
+            function onMouseDown(e) {
+                e.preventDefault(); // Metin seçmeyi engelle
+                startX = e.clientX;
+                currentX = startX;
+                isSwiping = true;
+                contentElement.style.transition = 'none';
+                window.addEventListener('mousemove', onMouseMove);
+                window.addEventListener('mouseup', onMouseUp);
+            }
+            
+            function onMouseMove(e) {
+                if (!isSwiping) return;
+                currentX = e.clientX;
+                let diffX = currentX - startX;
+                
+                if (task.completed && diffX < 0) diffX = 0;
+                if (!task.completed && diffX > 0) diffX = 0;
+                if (Math.abs(diffX) > 120) diffX = diffX > 0 ? 120 : -120;
+                
+                contentElement.style.transform = `translateX(${diffX}px)`;
+            }
+            
+            async function onMouseUp(e) {
+                if (!isSwiping) return;
+                isSwiping = false;
+                window.removeEventListener('mousemove', onMouseMove);
+                window.removeEventListener('mouseup', onMouseUp);
+
+                // onTouchEnd ile aynı mantık
+                const diffX = currentX - startX;
+                contentElement.style.transition = 'transform 0.3s ease-out';
+                
+                if (!task.completed && diffX < -threshold) { // Sil
+                    contentElement.style.transform = 'translateX(-100%)';
+                    setTimeout(() => deleteTask(task.id), 300);
+                } else if (task.completed && diffX > threshold) { // Tamamlandı Geri Al
+                    contentElement.style.transform = 'translateX(100%)';
+                    setTimeout(() => toggleTaskCompleted(task.id, task.completed), 300);
+                } else {
+                    contentElement.style.transform = 'translateX(0px)';
+                }
+            }
+
+            // Dokunmatik olaylarını ekle
+            contentElement.addEventListener('touchstart', onTouchStart, { passive: true });
+            contentElement.addEventListener('touchmove', onTouchMove, { passive: true });
+            contentElement.addEventListener('touchend', onTouchEnd);
+            contentElement.addEventListener('touchcancel', onTouchEnd);
+            
+            // Masaüstü test için mouse olaylarını ekle
+            contentElement.addEventListener('mousedown', onMouseDown);
+        }
+
+        // --- Veri Aktarımı (Export/Import) ---
+
+        /**
+         * Tüm görevleri bir JSON dosyası olarak indirir.
+         */
+        function exportData() {
+            if (allTasks.length === 0) {
+                showToast("Dışa aktarılacak görev yok.", 3000);
+                return;
+            }
+            
+            // Timestamp'leri okunabilir string'lere dönüştür
+            const exportableData = allTasks.map(task => ({
+                ...task,
+                createdAt: task.createdAt ? task.createdAt.toDate().toISOString() : null,
+                dueDate: task.dueDate ? task.dueDate.toDate().toISOString() : null,
+            }));
+            
+            const dataStr = JSON.stringify(exportableData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `tasks-backup-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showToast("Veriler dışa aktarıldı!");
+        }
+
+        /**
+         * JSON dosyasından verileri okur ve Firestore'a yazar (Batch).
+         */
+        async function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const importedTasks = JSON.parse(e.target.result);
+                    if (!Array.isArray(importedTasks)) {
+                        throw new Error("JSON dosyası bir dizi (array) değil.");
+                    }
+
+                    // Firestore'a toplu yazma (Batch Write)
+                    const batch = writeBatch(db);
+                    
+                    importedTasks.forEach(task => {
+                        // ID'leri kaldırarak Firestore'un yeni ID'ler oluşturmasını sağla
+                        const { id, ...taskData } = task;
+
+                        // Tarih string'lerini Timestamp'e geri dönüştür
+                        const newTask = {
+                            ...taskData,
+                            createdAt: taskData.createdAt ? Timestamp.fromDate(new Date(taskData.createdAt)) : Timestamp.now(),
+                            dueDate: taskData.dueDate ? Timestamp.fromDate(new Date(taskData.dueDate)) : null
+                        };
+                        
+                        // Koleksiyona yeni bir belge referansı oluştur ve batch'e ekle
+                        const newDocRef = doc(tasksCollection); // Otomatik ID oluşturur
+                        batch.set(newDocRef, newTask);
+                    });
+
+                    await batch.commit();
+                    showToast(`${importedTasks.length} görev başarıyla içe aktarıldı!`);
+                    
+                } catch (error) {
+                    console.error("İçe aktarma hatası:", error);
+                    showToast(`Hata: ${error.message}`, 5000);
+                } finally {
+                    // Input'u sıfırla ki aynı dosyayı tekrar seçebilsin
+                    event.target.value = null;
+                }
+            };
+            reader.readAsText(file);
+        }
+
+
+        // --- Olay Dinleyicileri (Event Listeners) ---
+
+        function setupEventListeners() {
+            // Görev Ekleme
+            addTaskButton.addEventListener('click', addTaskToDb);
+            taskInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    addTaskToDb();
+                }
+            });
+
+            // Gelişmiş Seçenekler Paneli
+            toggleAdvancedButton.addEventListener('click', toggleAdvancedOptions);
+
+            // Akıllı Kategori
+            magicCategoryButton.addEventListener('click', suggestCategory);
+
+            // Arama
+            searchBar.addEventListener('input', renderTasks);
+
+            // Filtre Butonları
+            filterButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    // Aktif stili güncelle
+                    filterButtons.forEach(btn => btn.classList.remove('bg-blue-500', 'text-white', 'dark:bg-blue-700'));
+                    filterButtons.forEach(btn => btn.classList.add('bg-gray-200', 'text-gray-700', 'dark:bg-gray-600', 'dark:text-gray-200'));
+                    button.classList.add('bg-blue-500', 'text-white', 'dark:bg-blue-700');
+                    button.classList.remove('bg-gray-200', 'text-gray-700', 'dark:bg-gray-600', 'dark:text-gray-200');
+                    
+                    // Filtreyi ayarla ve yeniden çiz
+                    currentFilter = button.dataset.filter;
+                    renderTasks();
+                });
+            });
+
+            // Düzenleme Modalı
+            saveTaskButton.addEventListener('click', saveTaskChanges);
+            cancelEditButton.addEventListener('click', closeEditModal);
+            addSubtaskButton.addEventListener('click', addNewSubtaskToModal);
+            newSubtaskInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault(); // Formu göndermeyi engelle
+                    addNewSubtaskToModal();
+                }
+            });
+
+            // Rapor Modalı
+            reportButton.addEventListener('click', showReportModal);
+            closeReportButton.addEventListener('click', () => reportModal.classList.add('hidden'));
+            exportDataButton.addEventListener('click', exportData);
+            importDataInput.addEventListener('change', importData);
+
+            // Odaklanma Modalı
+            focusButton.addEventListener('click', showFocusModal);
+            closeFocusButton.addEventListener('click', () => focusModal.classList.add('hidden'));
+
+            // Tema Değiştirme
+            themeToggle.addEventListener('click', toggleTheme);
+        }
+
+        /**
+         * Gelişmiş seçenekler panelini açar/kapar.
+         */
+        function toggleAdvancedOptions() {
+            advancedOptions.classList.toggle('open');
+            const icon = toggleAdvancedButton.querySelector('svg');
+            if (advancedOptions.classList.contains('open')) {
+                // Panel açıldı, ikonu 'X' yap
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />';
+            } else {
+                // Panel kapandı, ikonu '+' yap
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />';
+            }
+        }
+
+
+        // --- Başlangıç ---
         
-        // NEW: Simulate Invite Button Handler (SADECE GÖSTERİM KONTROLÜ KALDI)
-        // const inviteButton = el('simulate-invite-button');
-        // if (inviteButton) {
-        //     inviteButton.addEventListener('click', simulateInvite);
-        // }
-
-
-        el('modal-close-button').addEventListener('click', () => el('modal-overlay').classList.remove('show'));
-        el('theme-toggle').addEventListener('change', () => {
-            const newTheme = el('theme-toggle').checked ? 'dark' : 'light';
-            state.settings.theme = newTheme;
-            document.documentElement.setAttribute('data-theme', newTheme);
-            showToast(newTheme === 'dark' ? '🌙 Karanlık tema aktif' : '☀️ Aydınlık tema aktif', 'info');
+        // Sayfa yüklendiğinde
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeFirebase();
+            setupEventListeners();
+            loadTheme();
+            requestNotificationPermission(); // Bildirim izni iste
         });
-        
-        el('stake-button').addEventListener('click', handleStaking);
-        el('unstake-button').addEventListener('click', handleStaking);
-        
-        // Market listeners
-        el('buy-gc-button').addEventListener('click', handleMarketBuy);
-        el('sell-gc-button').addEventListener('click', handleMarketSell);
-        el('market-input-amount').addEventListener('input', updateMarketTransactionCost);
-        
-        // Conversion listeners
-        el('convert-button').addEventListener('click', handleConversion);
-        el('convert-from-currency').addEventListener('change', updateConversionResult);
-        el('convert-to-currency').addEventListener('change', updateConversionResult);
-        el('convert-amount').addEventListener('input', updateConversionResult);
-        
-        // WITHDRAWAL LISTENERS
-        el('request-withdrawal-button').addEventListener('click', handleWithdrawalRequest);
-        
 
-        // Market fiyatını düzenli güncelle
-        setInterval(updateMarketPrice, MARKET_UPDATE_INTERVAL_MS);
-
-        // İlk yükleme için
-        renderUpgradesUI();
-        renderStatsUI();
-        updateMarketTransactionCost(); // Input default değerini ayarlamak için
-        updateConversionResult(); // Conversion result'ı ilk kez ayarla
-
-        // Veri Kayıt Döngüsü ve Ana Döngü Başlangıcı
-        setInterval(saveState, SAVE_INTERVAL_MS);
-        continuousUpdateLoop();
-    };
-
-    document.addEventListener('DOMContentLoaded', initializeApp);
-
-</script>
+    </script>
 </body>
 </html>
+
+
