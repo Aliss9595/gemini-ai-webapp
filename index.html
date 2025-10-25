@@ -1,488 +1,365 @@
 <!DOCTYPE html>
-<html lang="tr" class=""> <!-- Karanlık mod için 'class' buraya eklenecek -->
+<html lang="tr"> <!-- 'class' karanlık mod için JS tarafından yönetilecek -->
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"> <!-- iOS zoom engelleme -->
     <title>Akıllı Görev Yöneticisi</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- iOS Font Düzeltmesi -->
+    <!-- İkonlar için -->
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    <!-- Özel Stiller -->
     <style>
-        /* iOS'ta yatay moda geçince fontların devasa olmasını engeller */
-        @-ms-viewport { width: device-width; }
-        @-o-viewport { width: device-width; }
-        @viewport { width: device-width; }
+        /* iOS font yumuşatma ve boyut ayarı */
         body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
             -webkit-text-size-adjust: 100%;
             -ms-text-size-adjust: 100%;
             text-size-adjust: 100%;
-            /* Mobil tarayıcılarda 'aşağı çekip yenileme' ve 'sıçrama' efektini kapatır */
-            overscroll-behavior: none;
+            overscroll-behavior: none; /* Sayfa sıçramasını engelle */
+            background-color: #f8f8f8; /* iOS açık mod arkaplan */
+            transition: background-color 0.3s ease; /* Tema geçişi için eklendi */
         }
-        
-        /* Tema Geçişi için yumuşak animasyon */
-        body, .bg-white, .bg-gray-50, .bg-gray-100, .bg-gray-800, .bg-gray-900, .text-gray-900, .text-gray-100, input, textarea, select {
-            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        .dark body {
+             background-color: #000000; /* iOS koyu mod arkaplan */
         }
 
-        /* Görev kaydırma stilleri */
-        .task-item {
-            position: relative;
-            overflow: hidden;
-            touch-action: pan-y; /* Dikey kaydırmayı etkin tutar */
+        /* iOS tarzı kaydırma çubuğu (Webkit tarayıcılar için) */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-thumb { background: rgba(128, 128, 128, 0.5); border-radius: 10px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+
+        /* Liste elemanı sürüklenirken stil */
+        .dragging { opacity: 0.5; background-color: #e0e0e0; }
+        .dark .dragging { background-color: #333333; }
+        .drag-over-placeholder {
+            height: 50px; background-color: rgba(0, 122, 255, 0.1);
+            border: 1px dashed #007aff; border-radius: 10px;
+            margin: 8px 0; transition: all 0.2s ease-out;
         }
+
+        /* Görev kaydırma stilleri (iOS tarzı ikonlar) */
+        .task-item {
+            position: relative; overflow: hidden; touch-action: pan-y;
+            transition: opacity 0.3s ease-out, max-height 0.3s ease-out, margin 0.3s ease-out, padding 0.3s ease-out, background-color 0.3s ease;
+            max-height: 200px; background-color: white;
+            border-radius: 10px; margin-bottom: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .dark .task-item { background-color: #1c1c1e; box-shadow: none; }
+        
+        /* Tamamlanmış görev stili */
+        .task-item.completed .task-text { 
+            text-decoration: line-through; 
+            color: #8e8e93; 
+        }
+        .dark .task-item.completed .task-text {
+            color: #5a5a5f;
+        }
+        .task-item.completed .task-content {
+            opacity: 0.7;
+        }
+
         .task-content {
-            position: relative;
-            z-index: 10;
-            background: inherit; /* Arka planı üst elementten alır */
-            transition: transform 0.3s ease-out;
-            will-change: transform;
+            position: relative; z-index: 10; background: inherit;
+            transition: transform 0.3s ease-out; will-change: transform;
+            border-radius: 10px;
         }
         .swipe-action {
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            width: 80px; /* Kaydırma eylem alanı genişliği */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            z-index: 1;
+            position: absolute; top: 0; bottom: 0; width: 75px;
+            display: flex; align-items: center; justify-content: center;
+            color: white; z-index: 1;
         }
-        .swipe-action.left {
-            right: 0;
-            background-color: #ef4444; /* red-500 */
+        .swipe-action.left { /* Sil */
+            right: 0; background-color: #ff3b30; /* iOS Kırmızı */
+            border-top-right-radius: 10px; border-bottom-right-radius: 10px;
         }
-        .swipe-action.right {
-            left: 0;
-            background-color: #22c55e; /* green-500 */
+        .swipe-action.right { /* Tamamla */
+            left: 0; background-color: #34c759; /* iOS Yeşil */
+            border-top-left-radius: 10px; border-bottom-left-radius: 10px;
         }
+        .swipe-action ion-icon { font-size: 24px; }
 
         /* Yükleme animasyonu */
         .loader {
-            border: 4px solid #f3f3f3; /* Light grey */
-            border-top: 4px solid #3498db; /* Blue */
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
+            border: 4px solid #e5e5e0; border-top: 4px solid #007aff;
+            border-radius: 50%; width: 30px; height: 30px;
             animation: spin 1s linear infinite;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        .dark .loader { border: 4px solid #3a3a3c; border-top: 4px solid #0a84ff; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         /* Proje Etiketi */
         .project-badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 0.75rem; /* 12px */
-            font-weight: 500;
-            margin-right: 8px;
+            display: inline-block; padding: 2px 10px; border-radius: 10px;
+            font-size: 0.7rem; font-weight: 500; margin-left: 8px;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
-        /* Rapor için basit çubuk grafik */
-        .bar-chart {
-            display: flex;
-            height: 100px;
-            align-items: flex-end;
-            gap: 8px;
-            border-bottom: 1px solid #9ca3af; /* gray-400 */
-        }
-        .bar {
-            flex-grow: 1;
-            background-color: #3b82f6; /* blue-500 */
-            transition: height 0.5s ease-out;
-        }
-        .dark .bar {
-            background-color: #60a5fa; /* blue-400 */
-        }
-
-        /* Gelişmiş seçenekler panelinin açılıp kapanması */
-        #advancedOptions {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease-out;
-        }
-        #advancedOptions.open {
-            max-height: 500px; /* Açıkken alacağı maksimum yükseklik */
-        }
-
-        /* Alt görevlerin açılıp kapanması */
-        .subtask-list {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
-            opacity: 0;
-        }
-        .subtask-list.open {
-            max-height: 500px;
-            opacity: 1;
-        }
-
-        /* Toast Bildirim */
+        /* Toast Bildirim (iOS Tarzı) */
         #toastContainer {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+            position: fixed; bottom: 70px; left: 50%;
+            transform: translateX(-50%); z-index: 9999;
+            display: flex; flex-direction: column; align-items: center;
+            gap: 10px; width: max-content; max-width: 90%;
         }
         .toast {
-            background-color: #1f2937; /* gray-800 */
-            color: white;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
-            opacity: 1;
-            transform: translateX(0);
+            background-color: rgba(40, 40, 40, 0.85); color: white;
+            padding: 10px 16px; border-radius: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+            opacity: 1; transform: translateY(0); display: flex;
+            align-items: center; justify-content: space-between;
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            font-size: 0.9rem;
         }
-        .toast.hide {
-            opacity: 0;
-            transform: translateX(100%);
+        .toast.hide { opacity: 0; transform: translateY(20px); }
+        .toast button { /* Geri Al butonu */
+            font-weight: 600; margin-left: 12px; padding: 4px 8px;
+            border-radius: 15px; background-color: rgba(80, 80, 80, 0.7);
+            transition: background-color 0.2s ease;
         }
-        .dark .toast {
-            background-color: #f3f4f6; /* gray-100 */
-            color: #1f2937; /* gray-800 */
+         .toast button:hover { background-color: rgba(100, 100, 100, 0.8); }
+
+        /* Modal Geçiş Animasyonu */
+        .modal-fade {
+            transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
+            visibility: hidden; opacity: 0;
+            background-color: rgba(0,0,0,0.4); /* iOS karartma efekti */
+        }
+        .modal-fade.open { visibility: visible; opacity: 1; }
+        /* iOS Modal İçerik Animasyonu (Aşağıdan yukarı kayma) */
+        .modal-content {
+             transition: transform 0.3s ease-out, background-color 0.3s ease; /* Tema geçişi için eklendi */
+             transform: translateY(100%);
+             max-height: 85vh; display: flex; flex-direction: column;
+             width: 100%; position: absolute; bottom: 0;
+        }
+        .modal-fade.open .modal-content { transform: translateY(0); }
+        @media (min-width: 640px) { /* Daha büyük ekranlarda ortala */
+            .modal-content {
+                 max-width: 500px; border-radius: 15px 15px 0 0;
+                 position: relative; bottom: auto;
+                 transform: translateY(0); max-height: 70vh;
+            }
+             .modal-fade.open .modal-content { transform: translateY(0); }
         }
     </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 font-sans antialiased overscroll-behavior-none">
+<body class="bg-gray-100 dark:bg-black font-sans antialiased overscroll-y-none">
 
-    <!-- Toast Bildirim Konteyneri -->
     <div id="toastContainer"></div>
 
     <!-- Uygulama Konteyneri -->
-    <!-- Ekranın tamamını kaplar ve alttaki menüye yer açmak için alttan padding alır -->
-    <div class="flex flex-col h-screen max-w-lg mx-auto bg-white dark:bg-gray-800 shadow-lg">
+    <div class="flex flex-col h-[100dvh] max-w-lg mx-auto bg-white dark:bg-[#1c1c1e] shadow-lg transition-colors duration-300 overflow-hidden">
         
-        <!-- 1. Başlık (Header) -->
-        <header class="p-4 bg-blue-600 text-white dark:bg-blue-800 flex justify-between items-center shadow-md z-20">
-            <h1 class="text-2xl font-bold">Akıllı Asistan</h1>
-            <div class="flex items-center space-x-2">
-                <!-- Rapor Butonu -->
-                <button id="reportButton" class="p-2 rounded-full hover:bg-blue-700 dark:hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-white">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0h6m6 0v-6a2 2 0 00-2-2h-2a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2z" />
-                    </svg>
-                </button>
-                <!-- Bugün Odaklan Butonu -->
-                <button id="focusButton" class="p-2 rounded-full hover:bg-blue-700 dark:hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-white">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m12.728 0l-.707.707M12 21v-1m-6.364-1.636l.707-.707" />
-                    </svg>
-                </button>
-                <!-- Tema Değiştir Butonu -->
-                <button id="themeToggle" class="p-2 rounded-full hover:bg-blue-700 dark:hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-white">
-                    <!-- Güneş (Açık Mod) İkonu -->
-                    <svg id="themeIconSun" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M12 12a5 5 0 100-10 5 5 0 000 10z" />
-                    </svg>
-                    <!-- Ay (Karanlık Mod) İkonu -->
-                    <svg id="themeIconMoon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                    </svg>
-                </button>
+        <!-- 1. Başlık (Header) - iOS Tarzı -->
+        <header class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center flex-shrink-0 transition-colors duration-300">
+            <h1 class="text-3xl font-bold text-black dark:text-white transition-colors duration-300">Görevler</h1>
+            <div class="flex items-center space-x-3">
+                 <button id="reportButton" aria-label="Raporları Görüntüle" class="text-blue-500 dark:text-blue-400 p-1 transition-colors duration-300">
+                    <ion-icon name="stats-chart-outline" class="text-2xl"></ion-icon>
+                 </button>
+                 <button id="focusButton" aria-label="Bugün Odaklan" class="text-blue-500 dark:text-blue-400 p-1 transition-colors duration-300">
+                     <ion-icon name="filter-circle-outline" class="text-2xl"></ion-icon>
+                 </button>
+                 <button id="themeToggle" aria-label="Temayı Değiştir" class="text-blue-500 dark:text-blue-400 p-1 transition-colors duration-300">
+                    <!-- TEMA İKONLARI: Başlangıçta ikisi de gizli, JS ile biri gösterilecek -->
+                    <ion-icon id="themeIconSun" name="sunny-outline" class="text-2xl hidden"></ion-icon>
+                    <ion-icon id="themeIconMoon" name="moon-outline" class="text-2xl hidden"></ion-icon>
+                 </button>
             </div>
         </header>
 
-        <!-- 2. Arama ve Filtreleme Alanı -->
-        <div class="p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-10">
-            <!-- Arama Çubuğu -->
-            <input id="searchBar" type="text" placeholder="Görev veya proje ara..." class="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            
-            <!-- Filtre Butonları -->
-            <div class="flex justify-center space-x-2 mt-3">
-                <button data-filter="all" class="filter-btn flex-1 px-3 py-1 text-sm rounded-md bg-blue-500 text-white dark:bg-blue-700 focus:outline-none">Tümü</button>
-                <button data-filter="active" class="filter-btn flex-1 px-3 py-1 text-sm rounded-md bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200 focus:outline-none">Aktif</button>
-                <button data-filter="completed" class="filter-btn flex-1 px-3 py-1 text-sm rounded-md bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200 focus:outline-none">Tamamlanan</button>
+        <!-- 2. Arama ve Filtreleme (Header'ın altında) -->
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0 transition-colors duration-300">
+             <input id="searchBar" type="search" placeholder="Ara..." class="w-full px-3 py-2 border-none rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-300 text-sm">
+             <!-- Filtre Butonları (Segmented Control Tarzı) -->
+            <div class="flex justify-center space-x-1 mt-3 bg-gray-200 dark:bg-gray-700 p-1 rounded-lg transition-colors duration-300">
+                <button data-filter="all" class="filter-btn flex-1 px-3 py-1 text-sm rounded-md bg-white dark:bg-gray-600 text-blue-500 dark:text-blue-300 shadow font-semibold focus:outline-none transition-all duration-300">Tümü</button>
+                <button data-filter="active" class="filter-btn flex-1 px-3 py-1 text-sm rounded-md text-gray-700 dark:text-gray-300 font-medium focus:outline-none transition-all duration-300">Aktif</button>
+                <button data-filter="completed" class="filter-btn flex-1 px-3 py-1 text-sm rounded-md text-gray-700 dark:text-gray-300 font-medium focus:outline-none transition-all duration-300">Bitti</button>
             </div>
         </div>
 
-        <!-- 3. Görev Listesi (Esnek ve Kaydırılabilir Alan) -->
-        <main id="taskList" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-100 dark:bg-gray-900">
-            <!-- Görevler buraya JS ile eklenecek -->
+        <!-- 3. Görev Listesi -->
+        <main id="taskList" class="flex-1 overflow-y-auto p-4 space-y-2 bg-transparent transition-colors duration-300">
+             <!-- Yükleme animasyonu -->
+             <div id="loadingSpinner" class="flex justify-center items-center h-full pt-16">
+                 <div class="loader"></div>
+             </div>
+             <!-- Görevler buraya eklenecek -->
         </main>
 
-        <!-- 4. Görev Ekleme Menüsü (Footer) -->
-        <footer class="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-inner z-20">
-            <!-- Gelişmiş Seçenekler (Gizli Panel) -->
-            <div id="advancedOptions" class="">
-                <div class="grid grid-cols-2 gap-3 mb-3">
-                    <!-- Tarih ve Saat Seçimi -->
-                    <div>
-                        <label for="taskDueDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Bitiş Tarihi</label>
-                        <input type="datetime-local" id="taskDueDate" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:text-white dark:border-gray-600 focus:outline-none focus:ring-blue-500">
-                    </div>
-                    <!-- Öncelik Seçimi -->
-                    <div>
-                        <label for="taskPriority" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Öncelik</label>
-                        <select id="taskPriority" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:text-white dark:border-gray-600 focus:outline-none focus:ring-blue-500">
-                            <option value="low">Düşük</option>
-                            <option value="medium" selected>Orta</option>
-                            <option value="high">Yüksek</option>
-                        </select>
-                    </div>
-                    <!-- Proje Girişi -->
-                    <div>
-                        <label for="taskProject" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Proje</label>
-                        <div class="flex">
-                            <input type="text" id="taskProject" placeholder="Örn: İş, Ev" class="mt-1 block w-full border border-gray-300 rounded-l-md shadow-sm p-2 dark:bg-gray-700 dark:text-white dark:border-gray-600 focus:outline-none focus:ring-blue-500">
-                            <!-- Akıllı Kategori Butonu -->
-                            <button id="magicCategoryButton" class="mt-1 p-2 bg-indigo-500 text-white rounded-r-md hover:bg-indigo-600 focus:outline-none">
-                                ✨
-                            </button>
-                        </div>
-                    </div>
-                    <!-- Tekrarlama Seçimi -->
-                    <div>
-                        <label for="taskRepeat" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tekrarla</label>
-                        <select id="taskRepeat" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:text-white dark:border-gray-600 focus:outline-none focus:ring-blue-500">
-                            <option value="none" selected>Hiç</option>
-                            <option value="daily">Günlük</option>
-                            <option value="weekly">Haftalık</option>
-                            <option value="monthly">Aylık</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
+        <!-- 4. Görev Ekleme Menüsü (Footer) - iOS Tarzı -->
+        <footer class="p-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0 transition-colors duration-300">
             <!-- Ana Ekleme Çubuğu -->
-            <div class="flex space-x-2 items-start">
-                <!-- Gelişmiş Seçenekleri Aç/Kapa Butonu -->
-                <button id="toggleAdvancedButton" class="p-3 border rounded-lg dark:border-gray-600 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
-                </button>
-                <input type="text" id="taskInput" placeholder="Yeni bir görev ekle..." class="flex-1 px-4 py-3 border border-gray-300 rounded-lg dark:bg-gray-700 dark:text-white dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <button id="addTaskButton" class="px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <div class="flex space-x-2 items-center">
+                <input type="text" id="taskInput" placeholder="Yeni Görev Ekle..." class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-300 text-sm">
+                <button id="addTaskButton" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors duration-300 text-sm font-semibold">
                     Ekle
                 </button>
             </div>
         </footer>
     </div>
 
-    <!-- 5. Modal Pencereler (Gizli) -->
+    <!-- 5. Modal Pencereler (iOS Tarzı) -->
 
     <!-- Görev Düzenleme Modalı -->
-    <div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col">
-            <!-- Modal Başlık -->
-            <div class="p-4 border-b dark:border-gray-700">
-                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Görevi Düzenle</h3>
-            </div>
-            
-            <!-- Modal İçerik (Kaydırılabilir) -->
+    <div id="editModal" class="modal-fade fixed inset-0 flex items-end sm:items-center justify-center p-0 z-50">
+        <div class="modal-content bg-white dark:bg-[#1c1c1e] sm:rounded-lg shadow-xl transition-colors duration-300">
+             <div class="p-4 border-b dark:border-gray-700">
+                 <h3 class="text-lg font-semibold text-center text-gray-900 dark:text-white transition-colors duration-300">Görevi Düzenle</h3>
+             </div>
             <div class="p-4 space-y-4 overflow-y-auto">
-                <input type="hidden" id="editTaskId">
-                <!-- Temel Görev Metni -->
-                <div>
-                    <label for="editTaskText" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Görev</label>
-                    <input type="text" id="editTaskText" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:text-white dark:border-gray-600">
-                </div>
-                <!-- Görev Notları -->
-                <div>
-                    <label for="editTaskNotes" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Notlar</label>
-                    <textarea id="editTaskNotes" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:text-white dark:border-gray-600" placeholder="Detaylar, linkler, telefon numaraları..."></textarea>
-                </div>
+                 <input type="hidden" id="editTaskId">
+                 <div>
+                     <label for="editTaskText" class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 transition-colors duration-300">Görev</label>
+                     <input type="text" id="editTaskText" class="block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-sm transition-colors duration-300">
+                 </div>
+                 <div>
+                     <label for="editTaskNotes" class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 transition-colors duration-300">Notlar</label>
+                     <textarea id="editTaskNotes" rows="3" class="block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-sm transition-colors duration-300" placeholder="Detaylar..."></textarea>
+                 </div>
                 
-                <!-- Gelişmiş Seçenekler -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label for="editTaskDueDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Bitiş Tarihi</label>
-                        <input type="datetime-local" id="editTaskDueDate" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:text-white dark:border-gray-600">
-                    </div>
-                    <div>
-                        <label for="editTaskPriority" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Öncelik</label>
-                        <select id="editTaskPriority" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:text-white dark:border-gray-600">
-                            <option value="low">Düşük</option>
-                            <option value="medium">Orta</option>
-                            <option value="high">Yüksek</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label for="editTaskProject" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Proje</label>
-                        <input type="text" id="editTaskProject" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:text-white dark:border-gray-600">
-                    </div>
-                    <div>
-                        <label for="editTaskRepeat" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tekrarla</label>
-                        <select id="editTaskRepeat" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:text-white dark:border-gray-600">
-                            <option value="none">Hiç</option>
-                            <option value="daily">Günlük</option>
-                            <option value="weekly">Haftalık</option>
-                            <option value="monthly">Aylık</option>
-                        </select>
-                    </div>
-                </div>
+                 <div class="grid grid-cols-2 gap-4">
+                     <div>
+                         <label for="editTaskDueDate" class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 transition-colors duration-300">Bitiş Tarihi</label>
+                         <input type="datetime-local" id="editTaskDueDate" class="block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-sm transition-colors duration-300">
+                     </div>
+                     <div>
+                         <label for="editTaskPriority" class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 transition-colors duration-300">Öncelik</label>
+                         <select id="editTaskPriority" class="block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-sm transition-colors duration-300">
+                             <option value="low">Düşük</option>
+                             <option value="medium">Orta</option>
+                             <option value="high">Yüksek</option>
+                         </select>
+                     </div>
+                     <div>
+                         <label for="editTaskProject" class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 transition-colors duration-300">Proje</label>
+                         <input type="text" id="editTaskProject" class="block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-sm transition-colors duration-300">
+                     </div>
+                     <div>
+                         <label for="editTaskRepeat" class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 transition-colors duration-300">Tekrarla</label>
+                         <select id="editTaskRepeat" class="block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-sm transition-colors duration-300">
+                             <option value="none">Hiç</option>
+                             <option value="daily">Günlük</option>
+                             <option value="weekly">Haftalık</option>
+                             <option value="monthly">Aylık</option>
+                         </select>
+                     </div>
+                 </div>
 
-                <!-- Alt Görevler Bölümü -->
-                <div>
-                    <h4 class="text-md font-semibold text-gray-800 dark:text-gray-200 mb-2">Alt Görevler</h4>
-                    <div id="editSubtaskList" class="space-y-2">
-                        <!-- Alt görevler buraya eklenecek -->
-                    </div>
-                    <!-- Yeni Alt Görev Ekleme -->
-                    <div class="flex space-x-2 mt-2">
-                        <input type="text" id="newSubtaskInput" placeholder="Yeni alt görev" class="flex-1 border border-gray-300 rounded-md p-2 dark:bg-gray-700 dark:text-white dark:border-gray-600">
-                        <button id="addSubtaskButton" class="p-2 bg-green-500 text-white rounded-md hover:bg-green-600">Ekle</button>
-                    </div>
-                </div>
+                 <div>
+                     <h4 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2 transition-colors duration-300">Alt Görevler</h4>
+                     <div id="editSubtaskList" class="space-y-2">
+                         <!-- Alt görevler buraya eklenecek -->
+                     </div>
+                     <div class="flex space-x-2 mt-2">
+                         <input type="text" id="newSubtaskInput" placeholder="Yeni alt görev" class="flex-1 border-gray-300 dark:border-gray-600 rounded-md p-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-sm transition-colors duration-300">
+                         <button id="addSubtaskButton" class="p-2 bg-green-500 text-white rounded-md hover:bg-green-600 text-xs transition-colors duration-300">Ekle</button>
+                     </div>
+                 </div>
             </div>
             
-            <!-- Modal Footer (Butonlar) -->
-            <div class="p-4 bg-gray-50 dark:bg-gray-900 border-t dark:border-gray-700 flex justify-end space-x-3">
-                <button id="cancelEditButton" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">İptal</button>
-                <button id="saveTaskButton" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Kaydet</button>
+            <div class="p-4 bg-gray-50 dark:bg-gray-800 border-t dark:border-gray-700 flex justify-end space-x-3 transition-colors duration-300">
+                <button id="cancelEditButton" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 transition-colors duration-300 text-sm font-medium">İptal</button>
+                <button id="saveTaskButton" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-300 text-sm font-semibold">Kaydet</button>
             </div>
         </div>
     </div>
 
     <!-- Rapor Modalı -->
-    <div id="reportModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col">
+    <div id="reportModal" class="modal-fade fixed inset-0 flex items-end sm:items-center justify-center p-0 z-50">
+        <div class="modal-content bg-white dark:bg-[#1c1c1e] sm:rounded-lg shadow-xl transition-colors duration-300">
             <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
-                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Haftalık Rapor</h3>
-                <button id="closeReportButton" class="p-1 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
+                <h3 class="text-lg font-semibold text-center text-gray-900 dark:text-white flex-1 transition-colors duration-300">Haftalık Rapor</h3>
+                <button id="closeReportButton" class="p-1 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-300">
+                     <ion-icon name="close-circle" class="text-2xl"></ion-icon>
+                 </button>
             </div>
-            
             <div class="p-4 space-y-4 overflow-y-auto">
-                <!-- İstatistikler -->
-                <div class="grid grid-cols-2 gap-4 text-center">
-                    <div class="p-3 bg-green-100 dark:bg-green-900 rounded-lg">
-                        <div id="reportCompleted" class="text-3xl font-bold text-green-700 dark:text-green-300">0</div>
-                        <div class="text-sm text-green-600 dark:text-green-400">Görev Tamamlandı (7 Gün)</div>
-                    </div>
-                    <div class="p-3 bg-yellow-100 dark:bg-yellow-900 rounded-lg">
-                        <div id="reportActive" class="text-3xl font-bold text-yellow-700 dark:text-yellow-300">0</div>
-                        <div class="text-sm text-yellow-600 dark:text-yellow-400">Aktif Görev</div>
-                    </div>
-                </div>
-                
-                <!-- Proje Dağılımı -->
-                <div>
-                    <h4 class="text-md font-semibold text-gray-800 dark:text-gray-200 mb-2">Proje Dağılımı (Aktif Görevler)</h4>
-                    <div id="reportProjectChart" class="bar-chart p-2 bg-gray-50 dark:bg-gray-900 rounded">
-                        <!-- Çubuklar buraya eklenecek -->
-                    </div>
-                    <div id="reportProjectLegend" class="flex flex-wrap gap-2 mt-2">
-                        <!-- Etiketler buraya eklenecek -->
-                    </div>
-                </div>
-
-                <!-- Akıllı Yorum -->
-                <div>
-                    <h4 class="text-md font-semibold text-gray-800 dark:text-gray-200 mb-2">Akıllı Yorum</h4>
-                    <p id="reportSummary" class="p-3 bg-blue-50 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-lg text-sm">
-                        Rapor oluşturuluyor...
-                    </p>
-                </div>
-
-                <!-- Veri Yedekleme -->
-                <div>
-                    <h4 class="text-md font-semibold text-gray-800 dark:text-gray-200 mb-2">Veri Yönetimi</h4>
-                    <div class="flex space-x-2">
-                        <button id="exportDataButton" class="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm">
-                            Verileri Dışa Aktar (.json)
-                        </button>
-                        <label class_replacement="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm text-center cursor-pointer">
-                            Verileri İçe Aktar
-                            <input type="file" id="importDataInput" accept=".json" class="hidden">
-                        </label>
-                    </div>
-                </div>
+                 <div class="grid grid-cols-2 gap-4 text-center">
+                     <div class="p-3 bg-green-100 dark:bg-green-900 rounded-lg transition-colors duration-300">
+                         <div id="reportCompleted" class="text-3xl font-bold text-green-700 dark:text-green-300 transition-colors duration-300">0</div>
+                         <div class="text-sm text-green-600 dark:text-green-400 transition-colors duration-300">Tamamlandı (7 Gün)</div>
+                     </div>
+                     <div class="p-3 bg-yellow-100 dark:bg-yellow-900 rounded-lg transition-colors duration-300">
+                         <div id="reportActive" class="text-3xl font-bold text-yellow-700 dark:text-yellow-300 transition-colors duration-300">0</div>
+                         <div class="text-sm text-yellow-600 dark:text-yellow-400 transition-colors duration-300">Aktif Görev</div>
+                     </div>
+                 </div>
+                 <div>
+                     <h4 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2 transition-colors duration-300">Proje Dağılımı (Aktif)</h4>
+                     <div id="reportProjectChart" class="bar-chart p-2 bg-gray-50 dark:bg-gray-900 rounded h-20 flex items-end gap-1 transition-colors duration-300">
+                        <!-- Chart barları JS ile eklenecek -->
+                     </div>
+                     <div id="reportProjectLegend" class="flex flex-wrap gap-x-3 gap-y-1 mt-2">
+                        <!-- Legend JS ile eklenecek -->
+                     </div>
+                 </div>
+                 <div>
+                     <h4 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2 transition-colors duration-300">Akıllı Yorum</h4>
+                     <p id="reportSummary" class="p-3 bg-blue-50 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-lg text-xs transition-colors duration-300">
+                         Rapor oluşturuluyor...
+                     </p>
+                 </div>
+                 <div>
+                     <h4 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2 transition-colors duration-300">Veri Yönetimi (localStorage)</h4>
+                     <div class="flex space-x-2">
+                         <button id="exportDataButton" class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-xs font-medium transition-colors duration-300">
+                             Dışa Aktar (.json)
+                         </button>
+                         <label class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-xs font-medium text-center cursor-pointer transition-colors duration-300">
+                             İçe Aktar
+                             <input type="file" id="importDataInput" accept=".json" class="hidden">
+                         </label>
+                     </div>
+                 </div>
             </div>
         </div>
     </div>
 
-    <!-- "Bugün Odaklan" Modalı -->
-    <div id="focusModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col">
-            <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
-                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">🧠 Bugün Odaklan</h3>
-                <button id="closeFocusButton" class="p-1 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-            </div>
-            
+    <!-- Odaklanma Modalı -->
+    <div id="focusModal" class="modal-fade fixed inset-0 flex items-end sm:items-center justify-center p-0 z-50">
+        <div class="modal-content bg-white dark:bg-[#1c1c1e] sm:rounded-lg shadow-xl transition-colors duration-300">
+             <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+                 <h3 class="text-lg font-semibold text-center text-gray-900 dark:text-white flex-1 transition-colors duration-300">🧠 Bugün Odaklan</h3>
+                 <button id="closeFocusButton" class="p-1 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-300">
+                     <ion-icon name="close-circle" class="text-2xl"></ion-icon>
+                 </button>
+             </div>
             <div class="p-4 space-y-4 overflow-y-auto">
-                <p id="focusSummary" class="p-3 bg-blue-50 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-lg text-sm">
+                <p id="focusSummary" class="p-3 bg-blue-50 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-lg text-xs transition-colors duration-300">
                     Analiz ediliyor...
                 </p>
                 <ul id="focusTaskList" class="space-y-2">
-                    <!-- Odaklanılacak görevler buraya eklenecek -->
+                    <!-- Odak görevleri JS ile eklenecek -->
                 </ul>
             </div>
         </div>
     </div>
 
-    <!-- Firebase ve Uygulama Mantığı -->
+    <!-- Uygulama Mantığı (localStorage) -->
     <script type="module">
-        // Firebase kütüphanelerini import ediyoruz
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { 
-            getAuth, 
-            signInAnonymously, 
-            onAuthStateChanged, 
-            signInWithCustomToken 
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { 
-            getFirestore, 
-            doc, 
-            setDoc, 
-            addDoc, 
-            updateDoc, 
-            deleteDoc, 
-            onSnapshot, 
-            collection, 
-            query, 
-            where, 
-            getDocs,
-            Timestamp,
-            // enableNetwork, // DÜZELTME: Bu modülde bulunmuyor
-            // disableNetwork, // DÜZELTME: Bu modülde bulunmuyor
-            enableIndexedDbPersistence, // DÜZELTME: 'enablePersistence' yerine bu kullanılır
-            writeBatch
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Canvas ortamı tarafından sağlanan konfigürasyon
-        // Bu ortamda (Canvas) çalışırken, __firebase_config otomatik olarak sağlanır.
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{"apiKey":"FALLBACK_KEY","authDomain":"FALLBACK_DOMAIN","projectId":"FALLBACK_PROJECT"}');
-        
-        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        // !! DEPLOYMENT NOTU !!
-        // Bu uygulamayı Canvas DIŞINDA yayınlarken (örn: Netlify, Firebase Hosting),
-        // Yukarıdaki satırı YORUM SATIRI yapın (// ile başlayın)
-        // ve aşağıdaki bloğu YORUMDAN ÇIKARIP kendi Firebase bilgilerinizle doldurun.
-        /*
-        const firebaseConfig = {
-            apiKey: "SENİN-API-ANAHTARIN",
-            authDomain: "SENİN-PROJE-IDN.firebaseapp.com",
-            projectId: "SENİN-PROJE-IDN",
-            storageBucket: "SENİN-PROJE-IDN.appspot.com",
-            messagingSenderId: "SENİN-SENDER-IDN",
-            appId: "SENİN-APP-IDN"
-        };
-        */
-        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+        // ========================================================================
+        // !! BAĞIMSIZ SÜRÜM - VERİTABANI YOK !!
+        // Tüm veriler localStorage (tarayıcı hafızası) üzerine kuruludur.
+        // Kurulum veya anahtar gerekmez.
+        // ========================================================================
 
         // Global Değişkenler
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-        let app, auth, db, userId;
-        let tasksCollection, tasksListener = null;
-        let allTasks = []; // Tüm görevleri tutan yerel önbellek
-        let currentFilter = 'all'; // Mevcut filtre
-        let learnedCategories = {}; // Akıllı kategori için öğrenme havuzu
-        let notificationTimer = null; // Alarm bildirimleri için zamanlayıcı
+        let allTasks = []; // Tüm görevler için ana dizi
+        let currentFilter = 'all'; 
+        let learnedCategories = {}; // Akıllı kategori hafızası
+        let notificationTimer = null; 
+        let taskToUndo = null;
+        let undoTimer = null;
+        let draggedElement = null;
+        let placeholderElement = null;
 
         // --- DOM Elementleri ---
         const taskList = document.getElementById('taskList');
@@ -490,17 +367,7 @@
         const addTaskButton = document.getElementById('addTaskButton');
         const searchBar = document.getElementById('searchBar');
         const filterButtons = document.querySelectorAll('.filter-btn');
-        
-        // Gelişmiş Seçenekler
-        const toggleAdvancedButton = document.getElementById('toggleAdvancedButton');
-        const advancedOptions = document.getElementById('advancedOptions');
-        const taskDueDate = document.getElementById('taskDueDate');
-        const taskPriority = document.getElementById('taskPriority');
-        const taskProject = document.getElementById('taskProject');
-        const magicCategoryButton = document.getElementById('magicCategoryButton');
-        const taskRepeat = document.getElementById('taskRepeat');
-
-        // Düzenleme Modalı
+        const loadingSpinner = document.getElementById('loadingSpinner'); 
         const editModal = document.getElementById('editModal');
         const editTaskId = document.getElementById('editTaskId');
         const editTaskText = document.getElementById('editTaskText');
@@ -514,8 +381,6 @@
         const editSubtaskList = document.getElementById('editSubtaskList');
         const newSubtaskInput = document.getElementById('newSubtaskInput');
         const addSubtaskButton = document.getElementById('addSubtaskButton');
-        
-        // Rapor Modalı
         const reportModal = document.getElementById('reportModal');
         const reportButton = document.getElementById('reportButton');
         const closeReportButton = document.getElementById('closeReportButton');
@@ -526,679 +391,877 @@
         const reportSummary = document.getElementById('reportSummary');
         const exportDataButton = document.getElementById('exportDataButton');
         const importDataInput = document.getElementById('importDataInput');
-
-        // Odaklanma Modalı
         const focusModal = document.getElementById('focusModal');
         const focusButton = document.getElementById('focusButton');
         const closeFocusButton = document.getElementById('closeFocusButton');
         const focusSummary = document.getElementById('focusSummary');
         const focusTaskList = document.getElementById('focusTaskList');
-
-        // Tema Yönetimi
         const themeToggle = document.getElementById('themeToggle');
         const themeIconSun = document.getElementById('themeIconSun');
         const themeIconMoon = document.getElementById('themeIconMoon');
         const htmlElement = document.documentElement;
+        const toastContainer = document.getElementById('toastContainer');
 
-        // --- Öncelik ve Tarih Renkleri ---
-        const priorityColors = {
-            high: 'border-red-500 dark:border-red-400',
-            medium: 'border-yellow-500 dark:border-yellow-400',
-            low: 'border-green-500 dark:border-green-400',
+        // --- Renkler ve Yardımcı Fonksiyonlar ---
+        const priorityColors = { 
+            high: 'text-red-500', 
+            medium: 'text-yellow-500', 
+            low: 'text-green-500' 
         };
-        const dateColors = {
-            overdue: 'bg-red-100 dark:bg-red-900',
-            today: 'bg-yellow-100 dark:bg-yellow-900',
-            default: 'bg-white dark:bg-gray-800'
+        const dateColors = { 
+            overdue: 'border-l-4 border-red-500', 
+            today: 'border-l-4 border-yellow-500', 
+            default: 'border-l-4 border-transparent' 
         };
-
-        // --- Yardımcı Fonksiyonlar ---
-
+        const projectColorClasses = [
+            "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+            "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+            "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+            "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+            "bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200",
+            "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200",
+            "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+            "bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
+        ];
+        
         /**
-         * Tarihi 'YYYY-AA-GGTHH:SS' formatına dönüştürür (datetime-local input için).
-         * @param {Date | Timestamp} date - Tarih nesnesi veya Firestore Timestamp.
-         * @returns {string} Formatlanmış tarih string'i.
+         * ISO tarih string'ini (veya Date objesini) datetime-local input formatına çevirir
+         * @param {string | Date} dateString - ISO 8601 tarih string'i
+         * @returns {string} - YYYY-MM-DDTHH:mm formatında string
          */
-        function formatDateTimeLocal(date) {
-            if (!date) return '';
-            if (date.toDate) date = date.toDate(); // Timestamp ise Date'e çevir
-            
-            const pad = (num) => num.toString().padStart(2, '0');
-            const year = date.getFullYear();
-            const month = pad(date.getMonth() + 1);
-            const day = pad(date.getDate());
-            const hours = pad(date.getHours());
-            const minutes = pad(date.getMinutes());
-            
-            return `${year}-${month}-${day}T${hours}:${minutes}`;
-        }
-
-        /**
-         * Tarihi 'GG Ay YYYY, HH:SS' formatında güzel bir string'e dönüştürür.
-         * @param {Timestamp} timestamp - Firestore Timestamp.
-         * @returns {string} Formatlanmış tarih.
-         */
-        function formatReadableDate(timestamp) {
-            if (!timestamp) return '';
-            const date = timestamp.toDate();
-            return date.toLocaleString('tr-TR', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        }
-
-        /**
-         * Tarihin bugün mü, geçmişte mi olduğunu kontrol eder.
-         * @param {Timestamp} timestamp - Firestore Timestamp.
-         * @returns {'overdue' | 'today' | 'future'} Tarih durumu.
-         */
-        function checkDateStatus(timestamp) {
-            if (!timestamp) return null;
-            const now = new Date();
-            const taskDate = timestamp.toDate();
-
-            const isSameDay = (d1, d2) => 
-                d1.getFullYear() === d2.getFullYear() &&
-                d1.getMonth() === d2.getMonth() &&
-                d1.getDate() === d2.getDate();
-
-            if (taskDate < now && !isSameDay(now, taskDate)) {
-                return 'overdue';
-            } else if (isSameDay(now, taskDate)) {
-                return 'today';
+        function formatDateTimeLocal(dateString) {
+            if (!dateString) return "";
+            try {
+                const date = new Date(dateString);
+                if (isNaN(date.getTime())) return ""; // Geçersiz tarih
+                
+                // Zaman dilimi ofsetini hesaba kat
+                const offset = date.getTimezoneOffset() * 60000;
+                const localDate = new Date(date.getTime() - offset);
+                
+                return localDate.toISOString().slice(0, 16);
+            } catch (e) {
+                console.warn("formatDateTimeLocal hatası:", e);
+                return "";
             }
-            return 'future';
         }
 
         /**
-         * Ekranın köşesinde bir bildirim (toast) gösterir.
-         * @param {string} message - Gösterilecek mesaj.
-         * @param {number} duration - Milisaniye cinsinden süre.
+         * ISO tarih string'ini okunabilir bir formata çevirir (örn: Yarın 10:30)
+         * @param {string} dateString - ISO 8601 tarih string'i
+         * @returns {string} - Okunabilir tarih (örn: "25 Eki, 14:00" veya "Yarın, 10:30")
          */
-        function showToast(message, duration = 3000) {
-            const toastContainer = document.getElementById('toastContainer');
+        function formatReadableDate(dateString) {
+            if (!dateString) return null;
+            try {
+                const date = new Date(dateString);
+                const now = new Date();
+                const diffTime = date.getTime() - now.getTime();
+                const diffDays = diffTime / (1000 * 60 * 60 * 24);
+
+                const options = { hour: '2-digit', minute: '2-digit' };
+                const timeStr = date.toLocaleTimeString('tr-TR', options);
+
+                if (date.toDateString() === now.toDateString()) {
+                    return `Bugün, ${timeStr}`;
+                }
+                const tomorrow = new Date(now);
+                tomorrow.setDate(now.getDate() + 1);
+                if (date.toDateString() === tomorrow.toDateString()) {
+                    return `Yarın, ${timeStr}`;
+                }
+                const yesterday = new Date(now);
+                yesterday.setDate(now.getDate() - 1);
+                if (date.toDateString() === yesterday.toDateString()) {
+                    return `Dün, ${timeStr}`;
+                }
+                
+                // Diğer durumlar için (örn: 25 Eki, 14:00)
+                const dateOptions = { day: '2-digit', month: 'short' };
+                const dateStr = date.toLocaleDateString('tr-TR', dateOptions);
+                return `${dateStr}, ${timeStr}`;
+
+            } catch (e) {
+                console.warn("formatReadableDate hatası:", e);
+                return null;
+            }
+        }
+        
+        /**
+         * Tarihin durumunu kontrol eder (geçmiş, bugün, gelecek)
+         * @param {string} dateString - ISO 8601 tarih string'i
+         * @returns {'overdue' | 'today' | 'default'} - Tarih durumu
+         */
+        function checkDateStatus(dateString) {
+            if (!dateString) return 'default';
+            try {
+                const date = new Date(dateString);
+                const now = new Date();
+                
+                if (date.getTime() < now.getTime() && date.toDateString() !== now.toDateString()) {
+                    return 'overdue';
+                }
+                if (date.toDateString() === now.toDateString()) {
+                    return 'today';
+                }
+                return 'default';
+            } catch (e) {
+                return 'default';
+            }
+        }
+        
+        /**
+         * Ekranda iOS tarzı bir bildirim (toast) gösterir
+         * @param {string} message - Gösterilecek mesaj
+         * @param {number} duration - Milisaniye cinsinden süre
+         * @param {string | null} undoLabel - Geri al butonu metni (örn: "Geri Al")
+         * @param {Function | null} undoCallback - Geri al butonuna basıldığında çalışacak fonksiyon
+         */
+        function showToast(message, duration = 3000, undoLabel = null, undoCallback = null) {
             const toast = document.createElement('div');
             toast.className = 'toast';
             toast.textContent = message;
+
+            let undoButton = null;
+            if (undoLabel && undoCallback) {
+                undoButton = document.createElement('button');
+                undoButton.textContent = undoLabel;
+                toast.appendChild(undoButton);
+            }
+
             toastContainer.appendChild(toast);
 
-            // Gösterme animasyonu (CSS'te varsayılan)
-            
-            // Gizleme zamanlayıcısı
-            setTimeout(() => {
+            const hideAndRemoveToast = () => {
                 toast.classList.add('hide');
+                if(undoButton) undoButton.removeEventListener('click', clickEvent);
                 // Animasyon bittikten sonra DOM'dan kaldır
-                toast.addEventListener('transitionend', () => {
-                    // Güvenlik kontrolü, belki zaten kaldırılmıştır
-                    if (toast.parentNode) {
-                        toast.parentNode.removeChild(toast);
+                setTimeout(() => {
+                    if (toast.parentElement) {
+                        toast.parentElement.removeChild(toast);
                     }
-                }, { once: true }); // Olayı sadece bir kez dinle
-            }, duration);
+                }, 300); // .hide animasyonuyla eşleşmeli
+            };
+
+            // Geri al butonu olayı
+            const clickEvent = (e) => { // <-- HATA DÜZELTİLDİ: 'click' yerine clickEvent
+                e.stopPropagation(); // Toast'ın kapanmasını engelle
+                if(undoCallback) undoCallback();
+                hideAndRemoveToast();
+            };
+            if(undoButton) undoButton.addEventListener('click', clickEvent);
+
+
+            // Otomatik kapanma zamanlayıcısı
+            const timer = setTimeout(hideAndRemoveToast, duration);
+            
+            // Eğer Geri Al butonu varsa, zamanlayıcıyı global'e ata ki iptal edilebilsin
+            if (undoButton) {
+                // Eğer Geri Al için özel bir global timer varsa (örn: undoTimer)
+                // Onu burada yönetebilirsiniz. Bu basit toast için,
+                // Geri Al'a basmak timer'ı da temizler (çünkü toast'ı kaldırır).
+            }
+        }
+        
+        /**
+         * Bir string'e göre proje renk sınıfı döndürür
+         * @param {string} str - Proje adı
+         * @returns {string} - Tailwind renk sınıfı
+         */
+        function getProjectColor(str) {
+            if (!str) return projectColorClasses[projectColorClasses.length - 1]; // Varsayılan (Gri)
+            try {
+                let hash = 0;
+                for (let i = 0; i < str.length; i++) {
+                    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+                }
+                const index = Math.abs(hash % (projectColorClasses.length - 1)); // Son (gri) rengi hariç tut
+                return projectColorClasses[index];
+            } catch (e) {
+                return projectColorClasses[projectColorClasses.length - 1];
+            }
         }
 
-        // --- Tema Yönetimi ---
+        // ========================================================================
+        // TEMA KODU (Düzeltilmiş ve çalışır halde)
+        // ========================================================================
 
         function applyTheme(theme) {
             if (theme === 'dark') {
                 htmlElement.classList.add('dark');
-                themeIconSun.classList.add('hidden');
-                themeIconMoon.classList.remove('hidden');
-            } else {
+                themeIconMoon.classList.remove('hidden'); 
+                themeIconSun.classList.add('hidden');    
+            } else { // 'light' theme
                 htmlElement.classList.remove('dark');
-                themeIconSun.classList.remove('hidden');
-                themeIconMoon.classList.add('hidden');
+                themeIconSun.classList.remove('hidden'); 
+                themeIconMoon.classList.add('hidden');   
             }
         }
 
         function toggleTheme() {
-            const currentTheme = htmlElement.classList.contains('dark') ? 'dark' : 'light';
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            applyTheme(newTheme);
-            // Tercihi kaydet
+            const isCurrentlyDark = htmlElement.classList.contains('dark');
+            const newTheme = isCurrentlyDark ? 'light' : 'dark';
+            applyTheme(newTheme); 
             try {
                 localStorage.setItem('theme', newTheme);
             } catch (e) {
-                console.warn("localStorage'a erişilemedi. Tema tercihi kaydedilmedi.", e);
+                console.warn("[toggleTheme] Could not save theme to localStorage:", e);
             }
         }
 
         function loadTheme() {
-            let savedTheme = 'light'; // Varsayılan
+            let initialTheme = 'dark'; // <<< VARSAYILAN KARANLIK TEMA
             try {
-                savedTheme = localStorage.getItem('theme') || 'light';
+                const storedTheme = localStorage.getItem('theme');
+                if (storedTheme === 'light' || storedTheme === 'dark') { 
+                    initialTheme = storedTheme; 
+                }
             } catch (e) {
-                console.warn("localStorage'a erişilemedi. Varsayılan tema kullanılıyor.", e);
+                console.warn("[loadTheme] Error reading localStorage, using default dark:", e);
+                initialTheme = 'dark'; // Hata durumunda karanlığa dön
             }
-            applyTheme(savedTheme);
+            applyTheme(initialTheme); 
+        }
+        // ========================================================================
+        // TEMA KODU SONU
+        // ========================================================================
+
+
+        // --- localStorage Veri Yönetimi ---
+        
+        function loadTasksFromLocalStorage() {
+             try {
+                 const tasksJson = localStorage.getItem('tasks');
+                 const categoriesJson = localStorage.getItem('learnedCategories');
+                 
+                 if (tasksJson) {
+                     allTasks = JSON.parse(tasksJson);
+                     // Eski verilerde order olmayabilir, ekleyelim
+                     allTasks.forEach((task, index) => { 
+                         if (task.order === undefined || task.order === null) {
+                             // createdAt varsa onu kullan, yoksa indeksi kullan (veya Date.now())
+                             task.order = task.createdAt ? new Date(task.createdAt).getTime() : (Date.now() + index); 
+                         }
+                         if (task.id === undefined) {
+                             task.id = crypto.randomUUID(); // Eksik ID'leri doldur
+                         }
+                     });
+                 } else {
+                     allTasks = []; // Kayıt yoksa boş liste
+                 }
+                 
+                 if (categoriesJson) {
+                     learnedCategories = JSON.parse(categoriesJson);
+                 } else {
+                     learnedCategories = {};
+                 }
+                 
+             } catch (e) { 
+                 console.error("localStorage'dan görevler okunurken hata (veri bozuk olabilir):", e); 
+                 allTasks = []; // Hata durumunda sıfırla
+                 learnedCategories = {};
+                 try { 
+                     localStorage.removeItem('tasks'); 
+                     localStorage.removeItem('learnedCategories');
+                 } catch(err) {} // Bozuk veriyi silmeyi dene
+                 showToast("Hata: Kayıtlı görevler yüklenemedi. Veri sıfırlandı.", 5000); 
+             }
         }
 
-
-        // --- Firebase Başlatma ve Kimlik Doğrulama ---
-
-        async function initializeFirebase() {
-            try {
-                app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-
-                // Çevrimdışı desteği etkinleştir
-                // DÜZELTME: Fonksiyon adı enableIndexedDbPersistence olarak değiştirildi
-                await enableIndexedDbPersistence(db).catch((err) => {
-                    if (err.code == 'failed-precondition') {
-                        console.warn("Çevrimdışı kalıcılık birden fazla sekmede etkinleştirilemez.");
-                    } else if (err.code == 'unimplemented') {
-                        console.warn("Bu tarayıcı çevrimdışı kalıcılığı desteklemiyor.");
-                    }
-                });
-                
-                setupAuthListener();
-            } catch (error) {
-                console.error("Firebase başlatılamadı:", error);
-            }
+        function saveTasksToLocalStorage() {
+             try { 
+                 localStorage.setItem('tasks', JSON.stringify(allTasks)); 
+                 localStorage.setItem('learnedCategories', JSON.stringify(learnedCategories));
+             } catch (e) { 
+                 console.error("localStorage'a kaydederken hata:", e); 
+                 showToast("Hata: Görevler kaydedilemedi.", 3000); 
+             }
         }
 
-        function setupAuthListener() {
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    userId = user.uid;
-                    // Kullanıcı giriş yaptı, görevleri dinlemeye başla
-                    listenForTasks();
-                    // Alarm kontrolünü başlat
-                    startNotificationTimer();
-                } else {
-                    // Kullanıcı giriş yapmamış, token ile giriş yapmayı dene
-                    await attemptSignIn();
-                }
-            });
-        }
-
-        async function attemptSignIn() {
-            try {
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                    // onAuthStateChanged tetiklenecek
-                } else {
-                    await signInAnonymously(auth);
-                    // onAuthStateChanged tetiklenecek
-                }
-            } catch (error) {
-                console.error("Giriş hatası:", error);
-            }
-        }
-
-        // --- Görev CRUD (Create, Read, Update, Delete) Fonksiyonları ---
-
+        // --- Görev CRUD Fonksiyonları (localStorage) ---
+        
         /**
-         * Firestore'dan görevleri dinler ve değişiklik olduğunda 'allTasks' dizisini günceller.
-         */
-        function listenForTasks() {
-            if (!userId) return;
-
-            // Zaten bir dinleyici varsa, önce onu durdur
-            if (tasksListener) {
-                tasksListener(); 
-            }
-
-            tasksCollection = collection(db, `artifacts/${appId}/users/${userId}/tasks`);
-            
-            // Görevleri createdAt'a (oluşturulma tarihi) göre azalan sırada (en yeni üstte)
-            // getirmek isterdik, ancak bu, Firebase'de özel bir indeks gerektirir.
-            // Bu yüzden tüm veriyi çekip istemci tarafında (client-side) sıralayacağız.
-            const q = query(tasksCollection);
-
-            tasksListener = onSnapshot(q, (snapshot) => {
-                allTasks = snapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
-
-                // Akıllı kategori için hafızayı eğit
-                trainCategoryLearner(allTasks);
-
-                // Görevleri ekrana çiz
-                renderTasks();
-            }, (error) => {
-                console.error("Görevleri dinlerken hata:", error);
-            });
-        }
-
-        /**
-         * Yeni bir görevi Firestore'a ekler.
+         * Akıllı metin analizi ile görev ekler
          */
         async function addTaskToDb() {
             const text = taskInput.value.trim();
             if (text === '') return;
 
-            // Gelişmiş seçenekleri al
-            const dueDateValue = taskDueDate.value ? Timestamp.fromDate(new Date(taskDueDate.value)) : null;
-            const priorityValue = taskPriority.value;
-            const projectValue = taskProject.value.trim();
-            const repeatValue = taskRepeat.value;
+            const now = new Date();
+            const newOrder = allTasks.reduce((max, t) => Math.max(max, t.order || 0), 0) + 1;
 
-            try {
-                await addDoc(tasksCollection, {
-                    text: text,
-                    completed: false,
-                    createdAt: Timestamp.now(),
-                    dueDate: dueDateValue,
-                    priority: priorityValue,
-                    project: projectValue,
-                    repeat: repeatValue,
-                    notes: "", // Başlangıçta notlar boş
-                    subtasks: [] // Başlangıçta alt görevler boş
-                });
+            const newTask = {
+                id: crypto.randomUUID(),
+                text: text,
+                notes: "",
+                completed: false,
+                createdAt: now.toISOString(),
+                dueDate: null,
+                priority: "low",
+                project: "",
+                repeat: "none",
+                subtasks: [],
+                order: newOrder,
+                notificationSent: false
+            };
 
-                // Giriş alanlarını temizle (gelişmiş panel açık kalsa bile)
-                taskInput.value = '';
-                taskDueDate.value = '';
-                taskPriority.value = 'medium';
-                taskProject.value = '';
-                taskRepeat.value = 'none';
-                
-                // Görevi ekledikten sonra paneli kapat
-                if(advancedOptions.classList.contains('open')) {
-                    toggleAdvancedOptions();
+            // --- Akıllı Analiz ---
+            // 1. Proje Analizi (#proje)
+            const projectMatch = text.match(/#(\S+)/);
+            if (projectMatch) {
+                newTask.project = projectMatch[1];
+                newTask.text = text.replace(projectMatch[0], '').trim(); // Metinden projeyi temizle
+                // Öğrenme: Bu projeyi kaydet (eğer "öğren" gibi anahtar kelimeler varsa)
+                // Bu basit sürümde, her #proje bir proje olarak kabul edilir.
+            } else {
+                // 2. Kategori Öğrenme (Eğer #proje yoksa)
+                // (Daha karmaşık bir ML/NLP burada kullanılabilirdi,
+                // şimdilik basit bir anahtar kelime eşleşmesi)
+                for (const category in learnedCategories) {
+                    if (text.toLowerCase().includes(category.toLowerCase())) {
+                        newTask.project = category;
+                        break;
+                    }
                 }
-
-                showToast("Görev eklendi!");
-            } catch (error) {
-                console.error("Görev eklenirken hata:", error);
-                showToast("Hata: Görev eklenemedi.", 3000);
             }
+
+            // 3. Tarih Analizi (bugün, yarın, pazartesi, 25 ekim)
+            const lowerText = text.toLowerCase();
+            let date = null;
+            if (lowerText.includes("bugün")) {
+                date = new Date();
+                date.setHours(23, 59, 0, 0); // Gün sonu
+            } else if (lowerText.includes("yarın")) {
+                date = new Date();
+                date.setDate(date.getDate() + 1);
+                date.setHours(23, 59, 0, 0);
+            } else if (lowerText.includes("pazartesi")) {
+                 date = new Date();
+                 const day = date.getDay();
+                 const diff = (day === 1 ? 7 : (8 - day) % 7); // Gelecek pazartesi (bugün Pts ise 7 gün sonra)
+                 date.setDate(date.getDate() + diff);
+                 date.setHours(23, 59, 0, 0);
+            }
+            // (Daha fazla tarih analizi eklenebilir...)
+            
+            if(date) {
+                newTask.dueDate = date.toISOString();
+            }
+
+            // 4. Öncelik Analizi (!!!, acil, önemli)
+            if (text.includes("!!!") || lowerText.includes("acil") || lowerText.includes("önemli")) {
+                newTask.priority = "high";
+            }
+            // --- Akıllı Analiz Sonu ---
+
+            allTasks.push(newTask);
+            saveTasksToLocalStorage();
+            renderTasks();
+            taskInput.value = ''; // Input'u temizle
         }
 
         /**
-         * Bir görevin 'completed' (tamamlanma) durumunu değiştirir.
-         * @param {string} id - Görev ID'si.
-         * @param {boolean} currentStatus - Görevin mevcut tamamlanma durumu.
+         * Bir görevin tamamlanma durumunu değiştirir (tekrarlayanları yönetir)
+         * @param {string} id - Görev ID'si
+         * @param {boolean} currentStatus - Görevin mevcut tamamlanma durumu
          */
         async function toggleTaskCompleted(id, currentStatus) {
-            const task = allTasks.find(t => t.id === id);
-            if (!task) return;
+            const taskIndex = allTasks.findIndex(t => t.id === id);
+            if (taskIndex === -1) return;
 
-            // Tekrarlayan görev mantığı
-            if (!currentStatus && task.repeat !== 'none') {
-                const newDueDate = getNextRepeatDate(task.dueDate, task.repeat);
-                try {
-                    const taskRef = doc(db, `artifacts/${appId}/users/${userId}/tasks`, id);
-                    await updateDoc(taskRef, {
-                        // Tekrarlayan görevse, tamamlandı olarak işaretleme, sadece tarihini güncelle.
-                        // Eğer alt görevleri varsa, onları sıfırla.
-                        dueDate: newDueDate,
-                        subtasks: task.subtasks.map(sub => ({ ...sub, completed: false }))
-                    });
-                    showToast(`Görev ${task.repeat} olarak yinelendi!`);
-                } catch (error) {
-                    console.error("Tekrarlayan görev güncellenirken hata:", error);
+            const task = allTasks[taskIndex];
+            
+            if (currentStatus === false) { // Görev tamamlanıyor
+                if (task.repeat !== 'none' && task.dueDate) {
+                    // Tekrarlayan görev: Tamamlandı olarak işaretleme, tarihini güncelle
+                    const nextDate = getNextRepeatDate(task.dueDate, task.repeat);
+                    task.dueDate = nextDate;
+                    task.notificationSent = false; // Bildirimi sıfırla
+                    showToast("Tekrarlayan görev güncellendi!", 2000);
+                } else {
+                    // Normal görev: Tamamla
+                    task.completed = true;
+                    task.completedAt = new Date().toISOString();
                 }
             } else {
-                // Normal görev veya tamamlanmamışa geri döndürme
-                try {
-                    const taskRef = doc(db, `artifacts/${appId}/users/${userId}/tasks`, id);
-                    await updateDoc(taskRef, {
-                        completed: !currentStatus
-                    });
-                } catch (error) {
-                    console.error("Görev durumu güncellenirken hata:", error);
-                }
+                // Tamamlanmış görevi geri al
+                task.completed = false;
+                task.completedAt = null;
             }
+
+            saveTasksToLocalStorage();
+            renderTasks(); // Listeyi yeniden çiz
         }
 
         /**
-         * Bir görevi Firestore'dan siler.
-         * @param {string} id - Görev ID'si.
+         * Görevi veritabanından (localStorage) kalıcı olarak siler
+         * @param {string} id - Görev ID'si
          */
-        async function deleteTask(id) {
-            try {
-                const taskRef = doc(db, `artifacts/${appId}/users/${userId}/tasks`, id);
-                await deleteDoc(taskRef);
-                showToast("Görev silindi.");
-            } catch (error) {
-                console.error("Görev silinirken hata:", error);
-                showToast("Hata: Görev silinemedi.");
+        function deleteTaskFromDb(id) {
+            const index = allTasks.findIndex(t => t.id === id);
+            if (index > -1) {
+                allTasks.splice(index, 1);
+                saveTasksToLocalStorage();
+                renderTasks();
             }
         }
+        
+        /**
+         * Görevi "Geri Al" seçeneğiyle birlikte siler
+         * @param {string} id - Görev ID'si
+         */
+        function deleteTask(id) {
+            // Eğer "Geri Al" zamanlayıcısı aktifse, önceki silmeyi tamamla
+            if (undoTimer) {
+                clearTimeout(undoTimer);
+                if (taskToUndo) {
+                    deleteTaskFromDb(taskToUndo.id);
+                }
+            }
+            
+            const taskIndex = allTasks.findIndex(t => t.id === id);
+            if (taskIndex === -1) return;
+
+            // Görevi yedekle
+            taskToUndo = { ...allTasks[taskIndex], index: taskIndex };
+
+            // Görevi UI'dan ve geçici olarak veriden kaldır
+            allTasks.splice(taskIndex, 1);
+            saveTasksToLocalStorage(); // Kaydet (silinmiş haliyle)
+            renderTasks(); // Yeniden çiz
+
+            // Geri Al bildirimi göster
+            showToast("Görev silindi", 5000, "Geri Al", undoDelete);
+
+            // 5 saniye sonra kalıcı silme (eğer Geri Al'a basılmazsa)
+            undoTimer = setTimeout(() => {
+                taskToUndo = null;
+                undoTimer = null;
+                // Veri zaten silindi, sadece yedeği temizliyoruz.
+            }, 5000);
+        }
+
+        /**
+         * Silinen son görevi geri yükler
+         */
+        function undoDelete() {
+            if (undoTimer) {
+                clearTimeout(undoTimer);
+                undoTimer = null;
+            }
+
+            if (taskToUndo) {
+                // Görevi orijinal pozisyonuna (veya en sona) ekle
+                if (taskToUndo.index !== undefined && taskToUndo.index <= allTasks.length) {
+                     allTasks.splice(taskToUndo.index, 0, taskToUndo);
+                } else {
+                    allTasks.push(taskToUndo);
+                }
+                
+                taskToUndo = null;
+                saveTasksToLocalStorage();
+                renderTasks();
+                showToast("Silme işlemi geri alındı.", 2000);
+            }
+        }
+
 
         // --- Görevleri Ekrana Çizme (Render) ---
 
-        /**
-         * 'allTasks' dizisini filtreler, sıralar ve ekrana çizer.
-         */
         function renderTasks() {
-            // 1. Filtrele (Arama ve Butonlar)
+            // Yükleme spinner'ını gizle
+            if (loadingSpinner) { 
+                loadingSpinner.style.display = 'none'; 
+            }
+            
             const searchTerm = searchBar.value.toLowerCase();
             
+            // 1. Filtrele (Filtere + Arama)
             const filteredTasks = allTasks.filter(task => {
-                // Filtre butonuna göre filtrele
+                // Filtreleme
                 const filterMatch = 
                     (currentFilter === 'all') ||
                     (currentFilter === 'active' && !task.completed) ||
                     (currentFilter === 'completed' && task.completed);
-                
+
                 if (!filterMatch) return false;
 
-                // Arama terimine göre filtrele (Görev metni, proje veya notlar)
+                // Arama (Görev metni, notlar veya proje adında ara)
                 const searchMatch = 
-                    task.text.toLowerCase().includes(searchTerm) ||
-                    (task.project && task.project.toLowerCase().includes(searchTerm)) ||
-                    (task.notes && task.notes.toLowerCase().includes(searchTerm));
+                    (task.text.toLowerCase().includes(searchTerm)) ||
+                    (task.notes && task.notes.toLowerCase().includes(searchTerm)) ||
+                    (task.project && task.project.toLowerCase().includes(searchTerm));
                 
                 return searchMatch;
             });
-
-            // 2. Sırala
-            // Sıralama mantığı:
-            // 1. Tamamlanmamışlar üste
-            // 2. Bitiş tarihi olanlar (en yakın tarihli olanlar üste)
-            // 3. Önceliği yüksek olanlar üste
-            // 4. Oluşturulma tarihi (en yeni üste)
+            
+            // 2. Sırala (Tamamlanmayanlar üste, sonra sıraya göre)
             const sortedTasks = filteredTasks.sort((a, b) => {
-                // Tamamlanma durumu
                 if (a.completed !== b.completed) {
-                    return a.completed ? 1 : -1;
+                    return a.completed ? 1 : -1; // Tamamlanmayanlar (false) üste
                 }
-                // Bitiş tarihi (Null olanlar sona)
-                if (a.dueDate && b.dueDate) {
-                    if (a.dueDate.seconds !== b.dueDate.seconds) {
-                        return a.dueDate.seconds - b.dueDate.seconds; // Yakın tarih üste
-                    }
-                } else if (a.dueDate) {
-                    return -1; // Sadece a'nın tarihi var, a üste
-                } else if (b.dueDate) {
-                    return 1; // Sadece b'nin tarihi var, b üste
-                }
-                // Öncelik (high=2, medium=1, low=0)
-                const priorityMap = { high: 2, medium: 1, low: 0 };
-                const priorityA = priorityMap[a.priority] || 1;
-                const priorityB = priorityMap[b.priority] || 1;
-                if (priorityA !== priorityB) {
-                    return priorityB - priorityA; // Yüksek öncelik üste
-                }
-                // Oluşturulma tarihi (En yeni üste)
-                return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+                // İkisi de tamamlanmış veya tamamlanmamışsa 'order'a göre sırala
+                return (a.order || 0) - (b.order || 0); 
             });
-
-            // 3. Ekrana Çiz
+            
             taskList.innerHTML = ''; // Listeyi temizle
+            
             if (sortedTasks.length === 0) {
-                taskList.innerHTML = `
-                    <div class="text-center text-gray-500 dark:text-gray-400 mt-10">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        Tebrikler, hiç göreviniz yok!
-                    </div>`;
-                return;
+                 const emptyMsg = document.createElement('div');
+                 emptyMsg.className = "text-center text-gray-500 dark:text-gray-400 mt-10 text-sm";
+                 emptyMsg.textContent = searchTerm ? "Arama sonucu bulunamadı." : (currentFilter === 'active' ? "Aktif göreviniz yok." : (currentFilter === 'completed' ? "Tamamlanmış göreviniz yok." : "Henüz görev eklemediniz."));
+                 taskList.appendChild(emptyMsg);
+                 return; 
             }
-
-            sortedTasks.forEach(task => {
-                const taskElement = createTaskElement(task);
-                taskList.appendChild(taskElement);
+            
+            sortedTasks.forEach(task => { 
+                taskList.appendChild(createTaskElement(task)); 
             });
         }
-
+        
         /**
-         * Tek bir görev verisinden HTML elementi oluşturur.
-         * @param {object} task - Görev nesnesi.
-         * @returns {HTMLElement} Oluşturulan div elementi.
+         * Tek bir görev için HTML elementini oluşturur
+         * @param {object} task - Görev objesi
+         * @returns {HTMLElement} - Oluşturulan div elementi
          */
         function createTaskElement(task) {
-            const div = document.createElement('div');
-            div.className = 'task-item'; // Kaydırma için
+            const item = document.createElement('div');
+            item.className = `task-item ${task.completed ? 'completed' : ''}`;
+            item.dataset.id = task.id;
+            item.draggable = true; // Sürükle-bırak için
+
+            // 1. Kaydırma Aksiyonları (Arka Plan)
+            // Sağ Aksiyon (Tamamla/Geri Al)
+            const actionRight = document.createElement('div');
+            actionRight.className = 'swipe-action right';
+            const iconRight = document.createElement('ion-icon');
+            iconRight.name = task.completed ? 'arrow-undo-outline' : 'checkmark-outline';
+            actionRight.appendChild(iconRight);
+            item.appendChild(actionRight);
             
-            // Tarih durumuna göre arka plan rengi
+            // Sol Aksiyon (Sil)
+            const actionLeft = document.createElement('div');
+            actionLeft.className = 'swipe-action left';
+            const iconLeft = document.createElement('ion-icon');
+            iconLeft.name = 'trash-outline';
+            actionLeft.appendChild(iconLeft);
+            item.appendChild(actionLeft);
+
+            // 2. Görev İçeriği (Ön Plan)
+            const content = document.createElement('div');
+            content.className = 'task-content p-3 flex items-center space-x-3';
+            
+            // Tarih durumu için sol kenarlık
             const dateStatus = checkDateStatus(task.dueDate);
-            const bgColor = task.completed ? 'bg-gray-200 dark:bg-gray-700' : (dateColors[dateStatus] || dateColors.default);
-            // Öncelik rengi (sol kenar)
-            const borderColor = priorityColors[task.priority] || 'border-transparent';
+            // HATA DÜZELTME: classList.add() boşluklu string kabul etmez. Spread operator (...) kullan.
+            const dateColorClasses = (dateColors[dateStatus] || dateColors.default).split(' ');
+            content.classList.add(...dateColorClasses);
 
-            // Alt görev ilerlemesi
-            const totalSubtasks = task.subtasks?.length || 0;
-            const completedSubtasks = task.subtasks?.filter(s => s.completed).length || 0;
-            const progressText = totalSubtasks > 0 ? `[${completedSubtasks}/${totalSubtasks}]` : '';
-
-            // Görevin kendisi (kaydırılabilir içerik)
-            const contentDiv = document.createElement('div');
-            contentDiv.className = `task-content relative flex items-center p-3 rounded-lg shadow ${bgColor} border-l-4 ${borderColor}`;
-            
-            // 1. Checkbox
+            // Checkbox
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.checked = task.completed;
-            checkbox.className = 'h-6 w-6 rounded text-blue-500 border-gray-300 dark:border-gray-600 focus:ring-blue-500 mr-3 flex-shrink-0';
-            checkbox.addEventListener('change', () => toggleTaskCompleted(task.id, task.completed));
+            checkbox.className = "form-checkbox h-5 w-5 rounded-full text-blue-500 border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:ring-blue-500 transition duration-150 ease-in-out flex-shrink-0";
+            checkbox.addEventListener('click', (e) => {
+                e.stopPropagation(); // Düzenleme modalını açmayı engelle
+                toggleTaskCompleted(task.id, task.completed);
+            });
+            content.appendChild(checkbox);
+
+            // Görev Metni ve Detaylar
+            const textWrapper = document.createElement('div');
+            textWrapper.className = 'flex-1 min-w-0'; // Taşmayı engellemek için
             
-            // 2. Görev Metni ve Detayları
-            const textContainer = document.createElement('div');
-            textContainer.className = 'flex-1 min-w-0'; // Taşan metinler için
-            
-            // Görev Metni (Tıklanabilir - Alt görevleri açar/kapar)
             const textSpan = document.createElement('span');
+            textSpan.className = 'task-text text-sm font-medium text-gray-900 dark:text-gray-100 block truncate';
             textSpan.textContent = task.text;
-            textSpan.className = `text-gray-900 dark:text-white ${task.completed ? 'line-through text-gray-500 dark:text-gray-400' : ''} ${totalSubtasks > 0 ? 'cursor-pointer font-medium' : ''}`;
-            if (totalSubtasks > 0) {
-                textSpan.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const sublist = div.querySelector('.subtask-list');
-                    if (sublist) {
-                        sublist.classList.toggle('open');
-                    }
-                });
-            }
+            textWrapper.appendChild(textSpan);
             
-            // Alt Başlık (Tarih, Proje, Not ikonu, Alt görev ilerlemesi)
-            const detailsContainer = document.createElement('div');
-            detailsContainer.className = 'text-sm text-gray-500 dark:text-gray-400 flex items-center flex-wrap gap-x-2';
-            
-            if (task.dueDate) {
+            // Alt Detaylar (Tarih, Proje)
+            const detailsWrapper = document.createElement('div');
+            detailsWrapper.className = 'flex items-center space-x-2 mt-1';
+
+            const readableDate = formatReadableDate(task.dueDate);
+            if (readableDate) {
                 const dateSpan = document.createElement('span');
-                dateSpan.textContent = formatReadableDate(task.dueDate);
-                if (dateStatus === 'overdue' && !task.completed) {
-                    dateSpan.className = 'font-bold text-red-600 dark:text-red-400';
-                }
-                detailsContainer.appendChild(dateSpan);
+                dateSpan.className = 'text-xs text-gray-500 dark:text-gray-400';
+                if (dateStatus === 'overdue') dateSpan.classList.add('text-red-500', 'font-medium');
+                if (dateStatus === 'today') dateSpan.classList.add('text-yellow-600', 'dark:text-yellow-400', 'font-medium');
+                dateSpan.textContent = readableDate;
+                detailsWrapper.appendChild(dateSpan);
             }
+
             if (task.project) {
                 const projectBadge = document.createElement('span');
-                projectBadge.className = 'project-badge bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+                projectBadge.className = `project-badge ${getProjectColor(task.project)}`;
                 projectBadge.textContent = task.project;
-                detailsContainer.appendChild(projectBadge);
+                detailsWrapper.appendChild(projectBadge);
             }
-            if (progressText) {
-                const progressSpan = document.createElement('span');
-                progressSpan.className = 'font-mono text-xs font-bold text-gray-600 dark:text-gray-300';
-                progressSpan.textContent = progressText;
-                detailsContainer.appendChild(progressSpan);
-            }
-            if (task.notes) {
-                const noteIcon = document.createElement('span');
-                noteIcon.textContent = '📝';
-                noteIcon.className = 'cursor-pointer';
-                noteIcon.title = task.notes; // Hover'da göster
-                noteIcon.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    showToast(`Not: ${task.notes}`, 5000);
-                });
-                detailsContainer.appendChild(noteIcon);
-            }
-
-            textContainer.appendChild(textSpan);
-            textContainer.appendChild(detailsContainer);
-
-            // 3. Düzenle Butonu (...)
-            const editButton = document.createElement('button');
-            editButton.className = 'ml-2 p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 flex-shrink-0';
-            editButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>';
-            editButton.addEventListener('click', () => openEditModal(task));
-
-            contentDiv.appendChild(checkbox);
-            contentDiv.appendChild(textContainer);
-            contentDiv.appendChild(editButton);
-
-            // Alt görev listesi (Gizli)
-            let subtaskList = null;
-            if (totalSubtasks > 0) {
-                subtaskList = document.createElement('div');
-                subtaskList.className = 'subtask-list pl-8 pr-4 py-2 bg-gray-50 dark:bg-gray-800 rounded-b-lg';
-                
-                task.subtasks.forEach((subtask, index) => {
-                    const subDiv = document.createElement('div');
-                    subDiv.className = 'flex items-center space-x-2';
-                    
-                    const subCheckbox = document.createElement('input');
-                    subCheckbox.type = 'checkbox';
-                    subCheckbox.checked = subtask.completed;
-                    subCheckbox.className = 'h-4 w-4 rounded text-blue-500 border-gray-300 dark:border-gray-600 focus:ring-blue-500';
-                    subCheckbox.addEventListener('change', () => toggleSubtask(task.id, index));
-                    
-                    const subText = document.createElement('span');
-                    subText.textContent = subtask.text;
-                    subText.className = `text-sm text-gray-700 dark:text-gray-300 ${subtask.completed ? 'line-through text-gray-500' : ''}`;
-                    
-                    subDiv.appendChild(subCheckbox);
-                    subDiv.appendChild(subText);
-                    subtaskList.appendChild(subDiv);
-                });
-            }
-
-            // Kaydırma Eylem (Swipe) Alanları (Gizli)
-            const swipeLeft = document.createElement('div');
-            swipeLeft.className = 'swipe-action left';
-            swipeLeft.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>'; // Çöp Kutusu
             
-            const swipeRight = document.createElement('div');
-            swipeRight.className = 'swipe-action right';
-            swipeRight.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>'; // Onay İmi
-
-            div.appendChild(swipeLeft);
-            div.appendChild(swipeRight);
-            div.appendChild(contentDiv);
-            if (subtaskList) {
-                div.appendChild(subtaskList);
+            if(detailsWrapper.hasChildNodes()) {
+                textWrapper.appendChild(detailsWrapper);
             }
+            
+            content.appendChild(textWrapper);
 
-            // Kaydırma (Swipe) Mantığını Ekle
-            setupSwipeActions(div, contentDiv, task);
+            // Öncelik İkonu (Sağ taraf)
+            if (task.priority !== 'low') {
+                const priorityIcon = document.createElement('ion-icon');
+                priorityIcon.name = task.priority === 'high' ? 'flag-outline' : 'flag-outline'; // (Orta için farklı ikon olabilir)
+                priorityIcon.className = `flex-shrink-0 text-lg ${priorityColors[task.priority]}`;
+                content.appendChild(priorityIcon);
+            }
+            
+            item.appendChild(content);
 
-            return div;
+            // Olay Dinleyicileri
+            // Düzenleme için tıkla
+            content.addEventListener('click', () => {
+                openEditModal(task);
+            });
+            
+            // Sürükle-bırak
+            item.addEventListener('dragstart', handleDragStart);
+            
+            // Kaydırma (Swipe)
+            setupSwipeActions(item, content, task);
+
+            return item;
         }
 
-        // --- Görev Düzenleme Modalı Fonksiyonları ---
+        // --- Sürükle ve Bırak Fonksiyonları ---
+        
+        function handleDragStart(e) {
+            // Sadece tamamlanmamış görevlerin sürüklenmesine izin ver (veya filtre 'all' ise)
+            if (currentFilter !== 'all' && currentFilter !== 'active') {
+                e.preventDefault();
+                return;
+            }
+            
+            draggedElement = e.target.closest('.task-item');
+            if (!draggedElement) return;
 
+            // Sürüklerken bir gecikme ekleyerek yanlışlıkla kaydırmayı engelle
+            setTimeout(() => {
+                if (draggedElement) { // Hâlâ sürükleniyorsa
+                    draggedElement.classList.add('dragging');
+                }
+            }, 0);
+            
+            // Placeholder oluştur
+            placeholderElement = document.createElement('div');
+            placeholderElement.className = 'drag-over-placeholder';
+            placeholderElement.style.height = `${draggedElement.offsetHeight}px`;
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            if (!draggedElement) return;
+            
+            const container = taskList;
+            const afterElement = getDragAfterElement(container, e.clientY);
+            
+            if (afterElement == null) {
+                container.appendChild(placeholderElement);
+            } else {
+                container.insertBefore(placeholderElement, afterElement);
+            }
+        }
+        
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.task-item:not(.dragging):not(.completed)')];
+
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function handleDragLeave(e) {
+            // Placeholder'ı kaldır
+             if (placeholderElement && placeholderElement.parentElement) {
+                // Sadece taskList'ten ayrılırken değil, task-item'lar arasında gezerken de tetiklenebilir.
+                // Gerçekten liste dışına çıkılıp çıkılmadığını kontrol etmek daha sağlam olabilir,
+                // ama şimdilik handleDragOver sürekli yerleştirdiği için bu yeterli olabilir.
+            }
+        }
+
+        async function handleDrop(e) {
+            e.preventDefault();
+            if (!draggedElement || !placeholderElement || !placeholderElement.parentElement) {
+                handleDragEnd(e); // Sürükleme bittiyse temizle
+                return;
+            }
+            
+            // Placeholder'ın yerine sürüklenen elementi koy
+            placeholderElement.parentElement.replaceChild(draggedElement, placeholderElement);
+            
+            // DOM'a göre sırayı güncelle
+            await updateTaskOrderFromDOM();
+            
+            handleDragEnd(e); // Temizle
+        }
+
+        async function updateTaskOrderFromDOM() {
+            const taskElements = [...taskList.querySelectorAll('.task-item')];
+            
+            // Yeni sırayı DOM'a göre belirle
+            let currentOrder = 0;
+            const orderMap = {};
+            
+            taskElements.forEach(el => {
+                const id = el.dataset.id;
+                // Tamamlanmış görevleri sıranın sonuna at
+                const task = allTasks.find(t => t.id === id);
+                if (task && !task.completed) {
+                    currentOrder += 10; // Aralara görev ekleyebilmek için 10'ar 10'ar artır
+                    orderMap[id] = currentOrder;
+                } else if (task && task.completed) {
+                    // Tamamlanmışların sırasını güncellemiyoruz, onlar sonda kalmalı
+                    // (veya kendi sıraları olmalı)
+                }
+            });
+            
+            // allTasks dizisindeki 'order'ı güncelle
+            allTasks.forEach(task => {
+                if (orderMap[task.id] !== undefined) {
+                    task.order = orderMap[task.id];
+                }
+            });
+
+            saveTasksToLocalStorage();
+            // renderTasks() çağrısına gerek yok, DOM zaten güncel.
+            // Sadece sıralama verisini kaydettik.
+        }
+
+        function handleDragEnd(e) {
+            if (draggedElement) {
+                draggedElement.classList.remove('dragging');
+            }
+            if (placeholderElement && placeholderElement.parentElement) {
+                placeholderElement.parentElement.removeChild(placeholderElement);
+            }
+            draggedElement = null;
+            placeholderElement = null;
+        }
+
+        // --- Görev Düzenleme Modalı Fonksiyonları (localStorage) ---
+        
         function openEditModal(task) {
             editTaskId.value = task.id;
             editTaskText.value = task.text;
-            editTaskNotes.value = task.notes || '';
+            editTaskNotes.value = task.notes || "";
             editTaskDueDate.value = formatDateTimeLocal(task.dueDate);
-            editTaskPriority.value = task.priority || 'medium';
-            editTaskProject.value = task.project || '';
-            editTaskRepeat.value = task.repeat || 'none';
-
-            // Alt görevleri modal'a yükle
+            editTaskPriority.value = task.priority || "low";
+            editTaskProject.value = task.project || "";
+            editTaskRepeat.value = task.repeat || "none";
+            
             renderSubtasksInModal(task.subtasks || []);
-
-            editModal.classList.remove('hidden');
+            
+            editModal.classList.add('open');
         }
 
         function closeEditModal() {
-            editModal.classList.add('hidden');
-            // Girdi alanlarını temizle (güvenlik için)
-            editTaskId.value = '';
-            editTaskText.value = '';
-            editTaskNotes.value = '';
-            editTaskDueDate.value = '';
-            editTaskPriority.value = 'medium';
-            editTaskProject.value = '';
-            editTaskRepeat.value = 'none';
-            editSubtaskList.innerHTML = '';
-            newSubtaskInput.value = '';
+            editModal.classList.remove('open');
+            // Formu temizle
+            editTaskId.value = "";
+            editTaskText.value = "";
+            editTaskNotes.value = "";
+            editTaskDueDate.value = "";
+            editTaskPriority.value = "low";
+            editTaskProject.value = "";
+            editTaskRepeat.value = "none";
+            editSubtaskList.innerHTML = "";
+            newSubtaskInput.value = "";
         }
 
         async function saveTaskChanges() {
             const id = editTaskId.value;
             if (!id) return;
 
-            const updatedTask = {
-                text: editTaskText.value.trim(),
-                notes: editTaskNotes.value.trim(),
-                dueDate: editTaskDueDate.value ? Timestamp.fromDate(new Date(editTaskDueDate.value)) : null,
-                priority: editTaskPriority.value,
-                project: editTaskProject.value.trim(),
-                repeat: editTaskRepeat.value,
-                // Alt görevler 'subtasks' global değişkeninden (veya DOM'dan) alınmalı
-                subtasks: getSubtasksFromModal()
-            };
+            const taskIndex = allTasks.findIndex(t => t.id === id);
+            if (taskIndex === -1) return;
 
-            if (updatedTask.text === '') {
-                showToast("Görev metni boş olamaz!", 3000);
-                return;
+            const task = allTasks[taskIndex];
+            
+            task.text = editTaskText.value;
+            task.notes = editTaskNotes.value;
+            task.dueDate = editTaskDueDate.value ? new Date(editTaskDueDate.value).toISOString() : null;
+            task.priority = editTaskPriority.value;
+            task.project = editTaskProject.value;
+            task.repeat = editTaskRepeat.value;
+            task.subtasks = getSubtasksFromModal();
+            
+            // Eğer tarih güncellendiyse bildirimi sıfırla
+            task.notificationSent = false;
+            
+            // Kategori öğrenmeyi güncelle (eğer proje değiştiyse)
+            if (task.project) {
+                 trainCategoryLearner([task]); // Sadece bu görevle öğrenciyi eğit
             }
 
-            try {
-                const taskRef = doc(db, `artifacts/${appId}/users/${userId}/tasks`, id);
-                await updateDoc(taskRef, updatedTask);
-                showToast("Görev güncellendi.");
-                closeEditModal();
-            } catch (error) {
-                console.error("Görev güncellenirken hata:", error);
-                showToast("Hata: Görev güncellenemedi.");
-            }
+            saveTasksToLocalStorage();
+            renderTasks();
+            closeEditModal();
         }
 
-        // --- Alt Görev (Subtask) Fonksiyonları ---
-
-        /**
-         * Düzenleme modalındaki alt görevleri DOM'a çizer.
-         */
+        // --- Alt Görev Fonksiyonları (localStorage) ---
+        
         function renderSubtasksInModal(subtasks) {
             editSubtaskList.innerHTML = '';
-            if (!subtasks || subtasks.length === 0) {
-                editSubtaskList.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">Alt görev yok.</p>';
-                return;
-            }
+            if (!subtasks || subtasks.length === 0) return;
+            
             subtasks.forEach((subtask, index) => {
-                const subDiv = document.createElement('div');
-                subDiv.className = 'flex items-center space-x-2 p-2 bg-gray-100 dark:bg-gray-700 rounded';
-                subDiv.dataset.index = index; // Sıralama için
-
-                const subCheckbox = document.createElement('input');
-                subCheckbox.type = 'checkbox';
-                subCheckbox.checked = subtask.completed;
-                subCheckbox.className = 'subtask-modal-checkbox h-4 w-4 rounded text-blue-500 border-gray-300 dark:border-gray-600 focus:ring-blue-500';
+                const subtaskEl = document.createElement('div');
+                subtaskEl.className = 'flex items-center space-x-2 p-2 bg-gray-50 dark:bg-gray-800 rounded';
                 
-                const subText = document.createElement('input');
-                subText.type = 'text';
-                subText.value = subtask.text;
-                subText.className = `subtask-modal-text flex-1 bg-transparent focus:outline-none ${subtask.completed ? 'line-through text-gray-500' : 'dark:text-white'}`;
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = subtask.completed;
+                checkbox.className = 'form-checkbox h-4 w-4 rounded text-blue-500 border-gray-300 dark:border-gray-600 dark:bg-gray-700';
                 
-                const deleteButton = document.createElement('button');
-                deleteButton.innerHTML = '🗑️';
-                deleteButton.className = 'text-sm p-1 hover:text-red-500';
-                deleteButton.onclick = () => {
-                    subDiv.remove(); // Sadece DOM'dan kaldır, kaydet'e basınca güncellenecek
+                const text = document.createElement('span');
+                text.textContent = subtask.text;
+                text.className = `flex-1 text-sm text-gray-800 dark:text-gray-200 ${subtask.completed ? 'line-through text-gray-500' : ''}`;
+                
+                // Checkbox'a tıklandığında stilini anında güncelle
+                checkbox.addEventListener('change', () => {
+                     text.classList.toggle('line-through', checkbox.checked);
+                     text.classList.toggle('text-gray-500', checkbox.checked);
+                });
+                
+                // Sil butonu
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'p-1 text-red-500 hover:text-red-700';
+                deleteBtn.innerHTML = '<ion-icon name="trash-bin-outline" class="text-xs"></ion-icon>';
+                deleteBtn.onclick = () => {
+                    subtaskEl.remove(); // Kaydet'e basılana kadar sadece DOM'dan kaldır
                 };
-
-                subDiv.appendChild(subCheckbox);
-                subDiv.appendChild(subText);
-                subDiv.appendChild(deleteButton);
-                editSubtaskList.appendChild(subDiv);
+                
+                subtaskEl.appendChild(checkbox);
+                subtaskEl.appendChild(text);
+                subtaskEl.appendChild(deleteBtn);
+                editSubtaskList.appendChild(subtaskEl);
             });
         }
-
+        
         /**
-         * Düzenleme modalındaki alt görevleri okuyup bir diziye dönüştürür.
+         * Düzenleme modalındaki alt görevlerin durumunu okur
+         * @returns {Array<object>} - Alt görevler dizisi
          */
         function getSubtasksFromModal() {
             const subtaskElements = editSubtaskList.querySelectorAll('.flex');
             const subtasks = [];
             subtaskElements.forEach(el => {
-                const textInput = el.querySelector('.subtask-modal-text');
-                const checkbox = el.querySelector('.subtask-modal-checkbox');
-                if (textInput && checkbox) {
+                const checkbox = el.querySelector('input[type="checkbox"]');
+                const textSpan = el.querySelector('span');
+                if (checkbox && textSpan) {
                     subtasks.push({
-                        text: textInput.value,
+                        text: textSpan.textContent,
                         completed: checkbox.checked
                     });
                 }
@@ -1206,724 +1269,543 @@
             return subtasks;
         }
 
-        /**
-         * Yeni alt görevi (sadece düzenleme modalında) DOM'a ekler.
-         */
         function addNewSubtaskToModal() {
             const text = newSubtaskInput.value.trim();
             if (text === '') return;
-
-            // "Alt görev yok" yazısını kaldır
-            const placeholder = editSubtaskList.querySelector('p');
-            if (placeholder) placeholder.remove();
-
-            const subtask = { text: text, completed: false };
-            // renderSubtasksInModal'ın yaptığıyla aynı elementi oluştur
-            const subDiv = document.createElement('div');
-            subDiv.className = 'flex items-center space-x-2 p-2 bg-gray-100 dark:bg-gray-700 rounded';
             
-            const subCheckbox = document.createElement('input');
-            subCheckbox.type = 'checkbox';
-            subCheckbox.checked = false;
-            subCheckbox.className = 'subtask-modal-checkbox h-4 w-4 rounded text-blue-500 border-gray-300 dark:border-gray-600 focus:ring-blue-500';
+            const newSubtask = { text: text, completed: false };
+            renderSubtasksInModal([...getSubtasksFromModal(), newSubtask]); // Mevcutları al, yeniyi ekle, yeniden çiz
             
-            const subText = document.createElement('input');
-            subText.type = 'text';
-            subText.value = text;
-            subText.className = 'subtask-modal-text flex-1 bg-transparent focus:outline-none dark:text-white';
-            
-            const deleteButton = document.createElement('button');
-            deleteButton.innerHTML = '🗑️';
-            deleteButton.className = 'text-sm p-1 hover:text-red-500';
-            deleteButton.onclick = () => {
-                subDiv.remove();
-            };
-
-            subDiv.appendChild(subCheckbox);
-            subDiv.appendChild(subText);
-            subDiv.appendChild(deleteButton);
-            editSubtaskList.appendChild(subDiv);
-            
-            newSubtaskInput.value = ''; // Input'u temizle
+            newSubtaskInput.value = '';
+            newSubtaskInput.focus();
         }
 
-        /**
-         * Ana listedeki alt görev checkbox'ını işler.
-         */
-        async function toggleSubtask(taskId, subtaskIndex) {
-            const task = allTasks.find(t => t.id === taskId);
-            if (!task) return;
+        // Bu fonksiyon (toggleSubtask) ana listede alt görev gösterilmediği için
+        // şu anki HTML yapısıyla doğrudan kullanılamaz.
+        // Alt görev mantığı 'saveTaskChanges' içinden 'getSubtasksFromModal' ile yönetiliyor.
+        // async function toggleSubtask(taskId, subtaskIndex) { /* ... */ }
 
-            // Kopyasını oluştur ve güncelle
-            const newSubtasks = [...task.subtasks];
-            newSubtasks[subtaskIndex].completed = !newSubtasks[subtaskIndex].completed;
-
-            // Ana görevin tamamlanma durumunu kontrol et
-            // Tüm alt görevler tamamlandıysa, ana görevi de tamamla
-            const allSubtasksCompleted = newSubtasks.every(s => s.completed);
-            
-            try {
-                const taskRef = doc(db, `artifacts/${appId}/users/${userId}/tasks`, taskId);
-                await updateDoc(taskRef, {
-                    subtasks: newSubtasks,
-                    completed: allSubtasksCompleted // Ana görevi de güncelle
-                });
-                
-                if (allSubtasksCompleted && task.repeat !== 'none') {
-                    // Eğer tüm alt görevler tamamlandıysa ve bu tekrarlayan bir görevse,
-                    // görevi yenile (toggleTaskCompleted mantığını taklit et)
-                    await toggleTaskCompleted(taskId, false); // false yolluyoruz ki yenileme tetiklensin
-                }
-                
-            } catch (error) {
-                console.error("Alt görev güncellenirken hata:", error);
-            }
-        }
-
-
-        // --- "Akıllı" Özellikler (Yerel) ---
-
-        /**
-         * Görev listesinden kelime ve proje eşleşmelerini öğrenir.
-         */
+        // --- "Akıllı" Özellikler (localStorage) --- 
+        
         function trainCategoryLearner(tasks) {
-            learnedCategories = {}; // Hafızayı sıfırla
+            // Bu, "proje" atanmış görevlerden anahtar kelimeler öğrenen
+            // çok basit bir "öğrenici"
             tasks.forEach(task => {
                 if (task.project) {
-                    const words = task.text.toLowerCase().split(/\s+/); // Kelimelere ayır
-                    words.forEach(word => {
-                        if (word.length > 3) { // Çok kısa kelimeleri (ve, bir vb.) es geç
-                            if (!learnedCategories[word]) {
-                                learnedCategories[word] = {};
-                            }
-                            // Bu kelimenin bu projede kaç kez geçtiğini say
-                            const count = (learnedCategories[word][task.project] || 0) + 1;
-                            learnedCategories[word][task.project] = count;
-                        }
-                    });
-                }
-            });
-        }
-
-        /**
-         * ✨ Butonu: Girilen göreve göre proje önerir.
-         */
-        function suggestCategory() {
-            const text = taskInput.value.toLowerCase();
-            const words = text.split(/\s+/);
-            const suggestions = {};
-
-            words.forEach(word => {
-                if (learnedCategories[word]) {
-                    Object.keys(learnedCategories[word]).forEach(project => {
-                        const score = learnedCategories[word][project];
-                        suggestions[project] = (suggestions[project] || 0) + score;
-                    });
-                }
-            });
-
-            // En yüksek skorlu projeyi bul
-            let bestProject = '';
-            let maxScore = 0;
-            Object.keys(suggestions).forEach(project => {
-                if (suggestions[project] > maxScore) {
-                    maxScore = suggestions[project];
-                    bestProject = project;
-                }
-            });
-
-            if (bestProject) {
-                taskProject.value = bestProject;
-                showToast(`Proje önerildi: ${bestProject}`);
-            } else {
-                showToast("Uygun bir proje önerisi bulunamadı.");
-            }
-        }
-
-        /**
-         * 🧠 Butonu: Odaklanma modalını açar ve yerel olarak analiz yapar.
-         */
-        function showFocusModal() {
-            const activeTasks = allTasks.filter(t => !t.completed);
-            
-            if (activeTasks.length === 0) {
-                focusSummary.textContent = "Harika! Hiç aktif göreviniz yok. Rahatlayabilirsiniz.";
-                focusTaskList.innerHTML = '';
-                focusModal.classList.remove('hidden');
-                return;
-            }
-
-            const now = new Date();
-            const priorityMap = { high: 3, medium: 2, low: 1 };
-
-            const scoredTasks = activeTasks.map(task => {
-                let score = 0;
-                // Öncelik puanı
-                score += priorityMap[task.priority] || 2;
-                
-                // Tarih puanı
-                if (task.dueDate) {
-                    const taskDate = task.dueDate.toDate();
-                    const diffDays = (taskDate - now) / (1000 * 60 * 60 * 24);
-
-                    if (diffDays < -1) { // 1 günden fazla gecikmiş
-                        score += 100;
-                    } else if (diffDays < 0) { // Bugün veya dün gecikmiş
-                        score += 50;
-                    } else if (diffDays < 1) { // Bugün son günü
-                        score += 25;
-                    } else if (diffDays < 3) { // 3 gün içinde
-                        score += 10;
+                    // Anahtar kelimeleri (basitçe) kategoriye ekle
+                    // Normalde burada daha karmaşık NLP (stopwords çıkarma vb.) gerekir
+                    if (!learnedCategories[task.project]) {
+                        learnedCategories[task.project] = [];
                     }
+                    // Bu örnek için, projenin kendisini bir "anahtar kelime" olarak ekleyelim
+                    if (!learnedCategories[task.project].includes(task.project.toLowerCase())) {
+                         learnedCategories[task.project].push(task.project.toLowerCase());
+                    }
+                    // (Gerçek bir öğrenici task.text'i analiz ederdi)
                 }
-                
-                // Alt görevi olmayanlar (daha hızlı bitirilebilir)
-                if (!task.subtasks || task.subtasks.length === 0) {
-                    score += 5;
-                }
-                
-                return { ...task, score };
             });
+            // (saveTasksToLocalStorage() zaten ana fonksiyonlarda çağrılıyor)
+        }
 
-            // En yüksek puanlı 5 görevi al
-            const focusList = scoredTasks.sort((a, b) => b.score - a.score).slice(0, 5);
-
-            // Akıllı özeti oluştur
-            const overdueCount = focusList.filter(t => t.dueDate && t.dueDate.toDate() < now).length;
-            let summaryText = `Şu anda ${activeTasks.length} aktif göreviniz var. `;
-            if (overdueCount > 0) {
-                summaryText += `Bunlardan ${overdueCount} tanesinin tarihi geçmiş görünüyor. `;
-                summaryText += "En iyisi bunlara öncelik vererek başlayalım!";
-            } else if (focusList.length > 0) {
-                summaryText += `İşte başlamak için en mantıklı ${focusList.length} görev:`;
-            } else {
-                summaryText += "Görünüşe göre her şey kontrol altında!";
-            }
-            focusSummary.textContent = summaryText;
-
-            // Odak listesini modal'a çiz
+        function showFocusModal() {
+            focusSummary.textContent = "Analiz ediliyor...";
             focusTaskList.innerHTML = '';
-            focusList.forEach(task => {
-                // Görev elementini klonla (basitleştirilmiş versiyon)
-                const taskDiv = document.createElement('div');
-                taskDiv.className = 'flex items-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg';
+            
+            const now = new Date();
+            const tomorrow = new Date(now);
+            tomorrow.setDate(now.getDate() + 1);
+            
+            const focusTasks = allTasks.filter(task => {
+                if (task.completed) return false;
                 
-                const taskText = document.createElement('span');
-                taskText.className = 'flex-1 text-gray-900 dark:text-white';
-                taskText.textContent = task.text;
+                // 1. Yüksek öncelikliler
+                if (task.priority === 'high') return true;
+                
+                // 2. Tarihi geçenler
+                const dateStatus = checkDateStatus(task.dueDate);
+                if (dateStatus === 'overdue') return true;
+                
+                // 3. Bugün veya yarın bitmesi gerekenler
+                if (dateStatus === 'today') return true;
+                if (task.dueDate && new Date(task.dueDate).toDateString() === tomorrow.toDateString()) return true;
+                
+                return false;
+            }).sort((a, b) => (a.order || 0) - (b.order || 0)); // Sıralamaya göre
+            
+            if (focusTasks.length === 0) {
+                 focusSummary.textContent = "Harika! Odaklanmanızı gerektiren acil bir göreviniz bulunmuyor. Yeni görevler ekleyebilir veya dinlenebilirsiniz.";
+                 focusModal.classList.add('open');
+                 return;
+            }
+
+            focusSummary.textContent = `Bugün odaklanmanız gereken ${focusTasks.length} önemli görev belirledik. İşte öncelik sırasına göre listeniz:`;
+            
+            focusTasks.forEach(task => {
+                const li = document.createElement('li');
+                li.className = 'p-2 bg-gray-50 dark:bg-gray-800 rounded-lg flex items-center space-x-2';
+                
+                // Görev elementi oluşturma (basitleştirilmiş)
+                const textSpan = document.createElement('span');
+                textSpan.className = 'text-sm font-medium text-gray-900 dark:text-gray-100 block truncate';
+                textSpan.textContent = task.text;
+                li.appendChild(textSpan);
                 
                 if (task.project) {
                     const projectBadge = document.createElement('span');
-                    projectBadge.className = 'ml-2 project-badge bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+                    projectBadge.className = `project-badge ${getProjectColor(task.project)}`;
                     projectBadge.textContent = task.project;
-                    taskText.appendChild(projectBadge);
+                    li.appendChild(projectBadge);
                 }
                 
-                taskDiv.appendChild(taskText);
-                focusTaskList.appendChild(taskDiv);
+                // Tıklayınca düzenleme modalını aç
+                li.addEventListener('click', () => {
+                    closeFocusButton.click(); // Önce odak modalını kapat
+                    setTimeout(() => openEditModal(task), 300); // Animasyon sonrası aç
+                });
+                
+                focusTaskList.appendChild(li);
             });
-
-            focusModal.classList.remove('hidden');
+            
+            focusModal.classList.add('open');
         }
 
-        /**
-         * 📊 Butonu: Rapor modalını açar ve istatistikleri çizer.
-         */
         function showReportModal() {
-            const activeTasks = allTasks.filter(t => !t.completed);
             const now = new Date();
             const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-
-            // 1. Son 7 günde tamamlananlar
-            const completedLast7Days = allTasks.filter(t => 
-                t.completed && t.createdAt.toDate() > sevenDaysAgo // Veya 'completedAt' tarihi tutulabilir
-            ).length;
-
-            // 2. Aktif görev sayısı
-            reportCompleted.textContent = completedLast7Days;
-            reportActive.textContent = activeTasks.length;
             
-            // 3. Proje Dağılımı (Aktif görevler üzerinden)
+            let completedCount = 0;
+            const activeTasks = [];
             const projectCounts = {};
-            let maxCount = 0;
-            activeTasks.forEach(task => {
-                const project = task.project || 'Diğer';
-                projectCounts[project] = (projectCounts[project] || 0) + 1;
-                if (projectCounts[project] > maxCount) {
-                    maxCount = projectCounts[project];
+            let highPriorityActive = 0;
+
+            allTasks.forEach(task => {
+                if (task.completed && task.completedAt && new Date(task.completedAt) >= sevenDaysAgo) {
+                    completedCount++;
+                }
+                
+                if (!task.completed) {
+                    activeTasks.push(task);
+                    if (task.project) {
+                        projectCounts[task.project] = (projectCounts[task.project] || 0) + 1;
+                    } else {
+                         projectCounts["Diğer"] = (projectCounts["Diğer"] || 0) + 1;
+                    }
+                    if(task.priority === 'high') {
+                        highPriorityActive++;
+                    }
                 }
             });
 
+            reportCompleted.textContent = completedCount;
+            reportActive.textContent = activeTasks.length;
+            
+            // Bar Chart ve Legend
             reportProjectChart.innerHTML = '';
             reportProjectLegend.innerHTML = '';
+            const totalActive = activeTasks.length;
             
-            const colors = ['bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-red-500', 'bg-indigo-500', 'bg-purple-500'];
-            let colorIndex = 0;
-
-            if (Object.keys(projectCounts).length === 0) {
-                reportProjectChart.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">Aktif proje yok.</p>';
+            if (totalActive > 0) {
+                const sortedProjects = Object.entries(projectCounts).sort(([,a],[,b]) => b-a);
+                
+                sortedProjects.forEach(([project, count]) => {
+                    const percentage = (count / totalActive) * 100;
+                    const colorClass = getProjectColor(project); // Renk sınıfını al (örn: "bg-blue-100 ...")
+                    // Renk sınıfından sadece arkaplan rengini (bg-) almamız lazım
+                    const bgColor = colorClass.split(' ').find(c => c.startsWith('bg-')) || 'bg-gray-200';
+                    
+                    // Chart Bar
+                    const bar = document.createElement('div');
+                    bar.className = `bar ${bgColor} dark:opacity-75`;
+                    bar.style.height = `${percentage}%`;
+                    bar.title = `${project}: ${count} görev (%${percentage.toFixed(0)})`;
+                    reportProjectChart.appendChild(bar);
+                    
+                    // Legend
+                    const legendItem = document.createElement('div');
+                    legendItem.className = 'flex items-center space-x-1';
+                    const colorDot = document.createElement('div');
+                    colorDot.className = `w-2 h-2 rounded-full ${bgColor}`;
+                    legendItem.appendChild(colorDot);
+                    const legendText = document.createElement('span');
+                    legendText.className = 'text-xs text-gray-600 dark:text-gray-400';
+                    legendText.textContent = `${project} (${count})`;
+                    legendItem.appendChild(legendText);
+                    reportProjectLegend.appendChild(legendItem);
+                });
+            } else {
+                 reportProjectChart.innerHTML = '<p class="text-xs text-center w-full text-gray-400">Aktif görev yok.</p>';
             }
 
-            for (const project in projectCounts) {
-                const count = projectCounts[project];
-                const heightPercentage = maxCount > 0 ? (count / maxCount) * 100 : 0;
-                
-                // Grafik Çubuğu
-                const bar = document.createElement('div');
-                bar.className = `bar ${colors[colorIndex % colors.length]}`;
-                bar.style.height = `${heightPercentage}%`;
-                bar.title = `${project}: ${count} görev`;
-                reportProjectChart.appendChild(bar);
-                
-                // Etiket (Legend)
-                const legendItem = document.createElement('div');
-                legendItem.className = 'flex items-center text-sm';
-                legendItem.innerHTML = `
-                    <span class="h-3 w-3 rounded-full ${colors[colorIndex % colors.length]} mr-1.5"></span>
-                    <span class="text-gray-700 dark:text-gray-300">${project} (${count})</span>
-                `;
-                reportProjectLegend.appendChild(legendItem);
-                
-                colorIndex++;
-            }
-
-            // 4. Akıllı Yorum
-            let summary = `Son 7 günde ${completedLast7Days} görev tamamladınız. `;
+            // Akıllı Yorum
+            let summary = `Bu hafta ${completedCount} görev tamamladınız. `;
             if (activeTasks.length > 0) {
-                summary += `Şu anda ${activeTasks.length} aktif göreviniz var. `;
-                const overdue = activeTasks.filter(t => t.dueDate && t.dueDate.toDate() < now && !t.completed).length;
-                if (overdue > 0) {
-                    summary += `Bunlardan ${overdue} tanesinin tarihi geçmiş görünüyor. Odaklanma zamanı!`;
-                } else {
-                    summary += "Her şey yolunda görünüyor, devam edin!";
+                summary += `Şu anda ${activeTasks.length} aktif göreviniz bulunuyor. `;
+                if (highPriorityActive > 0) {
+                     summary += `${highPriorityActive} tanesi yüksek öncelikli olarak işaretlenmiş. `;
+                }
+                const [topProject, topCount] = Object.entries(projectCounts).sort(([,a],[,b]) => b-a)[0] || [null, 0];
+                if (topProject && topProject !== "Diğer" && topCount > activeTasks.length / 2) {
+                    summary += `Aktif görevlerinizin çoğu (${topCount} adet) "${topProject}" projesine odaklanmış görünüyor.`;
                 }
             } else {
-                summary += "Tüm görevler tamamlanmış, harika iş!";
+                 summary += "Tüm görevleri tamamlamışsınız, harika gidiyorsunuz!";
             }
             reportSummary.textContent = summary;
-
-            reportModal.classList.remove('hidden');
+            
+            reportModal.classList.add('open');
         }
 
-        // --- Tekrarlayan Görev Mantığı ---
-
-        /**
-         * Bir sonraki tekrarlama tarihini hesaplar.
-         * @param {Timestamp} currentDueDate - Mevcut bitiş tarihi.
-         * @param {'daily' | 'weekly' | 'monthly'} repeatType - Tekrarlama tipi.
-         * @returns {Timestamp} Yeni bitiş tarihi.
-         */
+        // --- Tekrarlayan Görev Mantığı (localStorage) ---
+        
         function getNextRepeatDate(currentDueDate, repeatType) {
-            // Eğer bir bitiş tarihi yoksa, bugünden itibaren hesapla
-            const baseDate = currentDueDate ? currentDueDate.toDate() : new Date();
-            // Tarihin mevcut saatini koru
-            const newDate = new Date(baseDate.getTime());
+            try {
+                const date = new Date(currentDueDate);
+                if (isNaN(date.getTime())) return null; // Geçersiz tarih
 
-            // Her zaman "bugünden sonraya" ayarla
-            const now = new Date();
-            if (newDate < now) {
-                newDate = new Date();
-                // Orijinal saati koru
-                newDate.setHours(baseDate.getHours());
-                newDate.setMinutes(baseDate.getMinutes());
+                switch (repeatType) {
+                    case 'daily':
+                        date.setDate(date.getDate() + 1);
+                        break;
+                    case 'weekly':
+                        date.setDate(date.getDate() + 7);
+                        break;
+                    case 'monthly':
+                        date.setMonth(date.getMonth() + 1);
+                        break;
+                    default:
+                        return null; // Tekrar yoksa null dön
+                }
+                return date.toISOString();
+            } catch(e) {
+                console.error("getNextRepeatDate hatası:", e);
+                return null;
             }
-
-            switch (repeatType) {
-                case 'daily':
-                    newDate.setDate(newDate.getDate() + 1);
-                    break;
-                case 'weekly':
-                    newDate.setDate(newDate.getDate() + 7);
-                    break;
-                case 'monthly':
-                    newDate.setMonth(newDate.getMonth() + 1);
-                    break;
-                default:
-                    return Timestamp.fromDate(newDate); // Değişiklik yapma
-            }
-            return Timestamp.fromDate(newDate);
         }
 
-        // --- Alarm ve Bildirim Mantığı ---
-
-        /**
-         * Görevleri periyodik olarak kontrol eder ve bildirim gönderir.
-         */
+        // --- Alarm ve Bildirim Mantığı (localStorage) ---
+        
         function startNotificationTimer() {
             if (notificationTimer) {
                 clearInterval(notificationTimer);
             }
-            // Her 15 saniyede bir kontrol et
-            notificationTimer = setInterval(checkTaskAlarms, 15000);
+            // Her dakika kontrol et
+            notificationTimer = setInterval(checkTaskAlarms, 60000); 
         }
 
         function checkTaskAlarms() {
+            if (Notification.permission !== 'granted') return;
+
             const now = new Date().getTime();
-            const fiveMinutesInMs = 5 * 60 * 1000;
+            const fiveMinutes = 5 * 60 * 1000;
 
             allTasks.forEach(task => {
-                if (!task.completed && task.dueDate) {
-                    const taskTime = task.dueDate.toDate().getTime();
-                    const diff = taskTime - now;
-
-                    // 0 ile 5 dakika arasında mı VE daha önce bildirilmedi mi?
-                    if (diff > 0 && diff <= fiveMinutesInMs) {
-                        // Basit bir "bildirildi" bayrağı için localStorage kullanıyoruz
-                        // (Sayfa yenilense bile hatırlamak için)
-                        let notified = false;
-                        try {
-                            notified = localStorage.getItem(`notified_${task.id}`);
-                        } catch (e) {}
-
-                        if (!notified) {
-                            sendNotification(task);
-                            try {
-                                localStorage.setItem(`notified_${task.id}`, 'true');
-                            } catch (e) {}
+                if (!task.completed && task.dueDate && !task.notificationSent) {
+                    try {
+                        const dueDate = new Date(task.dueDate).getTime();
+                        // Zamanı geldiyse VEYA son 5 dakika içindeyse (veya geçtiyse)
+                        if (dueDate <= now) {
+                             sendNotification(task);
+                             task.notificationSent = true;
+                        } else if (dueDate <= (now + fiveMinutes)) {
+                             // Yakında (5 dk)
+                             sendNotification(task, `Yakında: `);
+                             task.notificationSent = true;
                         }
+                    } catch (e) {
+                        console.warn("checkTaskAlarms hatası (görev:", task.id, ")", e);
                     }
                 }
             });
+            
+            saveTasksToLocalStorage(); // 'notificationSent' durumunu kaydet
         }
 
-        /**
-         * Tarayıcıya bildirim gönderir.
-         */
-        function sendNotification(task) {
-            const title = 'Görev Yaklaşıyor!';
-            const options = {
-                body: `5 dakika kaldı: ${task.text}`,
-                icon: './favicon.ico' // Buraya bir ikon URL'si eklenebilir
-            };
-
-            if ('Notification' in window) {
-                if (Notification.permission === 'granted') {
-                    new Notification(title, options);
-                } else if (Notification.permission !== 'denied') {
-                    // İzin zaten reddedilmediyse, tekrar iste
-                    Notification.requestPermission().then(permission => {
-                        if (permission === 'granted') {
-                            new Notification(title, options);
-                        }
-                    });
-                }
-            } else {
-                // Tarayıcı Bildirimleri desteklemiyorsa, toast göster
-                showToast(options.body, 5000);
-            }
+        function sendNotification(task, prefix = "Süresi Doldu: ") {
+             if (Notification.permission === 'granted') {
+                 const title = prefix + task.text;
+                 const options = {
+                     body: task.notes || (task.project ? `Proje: ${task.project}` : "Görevi kontrol etmeyi unutma."),
+                     icon: 'https://placehold.co/192x192/007aff/white?text=A&font=sans-serif' // Bir ikon URL'si
+                 };
+                 new Notification(title, options);
+             }
         }
 
-        /**
-         * Sayfa yüklendiğinde bildirim izni ister.
-         */
         function requestNotificationPermission() {
-            if ('Notification' in window) {
-                if (Notification.permission === 'default') {
-                    // Sadece 'default' ise (ne evet ne hayır) sor
-                    Notification.requestPermission();
-                }
+            if (!('Notification' in window)) {
+                console.log("Bu tarayıcı bildirimleri desteklemiyor.");
+                return;
+            }
+            if (Notification.permission === 'default') {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        showToast("Bildirimlere izin verildi!", 2000);
+                        checkTaskAlarms(); // İzin alınır alınmaz kontrol et
+                    }
+                });
             }
         }
 
-        // --- Kaydırma (Swipe) Hareketleri Mantığı ---
-
+        // --- Kaydırma (Swipe) Hareketleri ---
+        
         function setupSwipeActions(taskElement, contentElement, task) {
             let startX = 0;
+            let startY = 0;
             let currentX = 0;
+            let currentY = 0;
+            let diffX = 0;
+            let diffY = 0;
             let isSwiping = false;
-            const threshold = 80; // Kaydırmayı tetiklemek için gereken minimum piksel
+            let isScrolling = false; // Dikey kaydırmayı izle
+            
+            let velocity = 0;
+            let lastX = 0;
+            let rafId = null;
+
+            const threshold = 75; // Kaydırma eşiği (px)
+            const maxSwipe = 75; // Maksimum ne kadar kaydırılabilir
 
             function onTouchStart(e) {
-                // Sadece tek parmakla dokunmayı algıla
-                if (e.touches.length !== 1) return;
+                if (draggedElement) return; // Sürükleme ile çakışmasın
+                
                 startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+                lastX = startX;
                 currentX = startX;
-                isSwiping = true;
-                // Kaydırma başlarken animasyonu kaldır
-                contentElement.style.transition = 'none';
+                currentY = startY;
+                diffX = 0;
+                diffY = 0;
+
+                isSwiping = true; // Henüz yön belli değil, "olası" swipe
+                isScrolling = false; 
+
+                contentElement.style.transition = 'none'; 
+                
+                velocity = 0;
+                if (rafId) cancelAnimationFrame(rafId);
+                rafId = requestAnimationFrame(updateVelocity);
+            }
+            
+            function updateVelocity() {
+                 if (!isSwiping || isScrolling) return; // scrolling ise hızı güncelleme
+                 velocity = diffX - lastX; // Hızı diffX'e göre hesapla
+                 lastX = diffX;
+                 rafId = requestAnimationFrame(updateVelocity);
             }
 
             function onTouchMove(e) {
-                if (!isSwiping || e.touches.length !== 1) return;
-                
+                if (!isSwiping) return; // Olası swipe başlamadıysa çık
+                if (isScrolling) return; // Dikey kaydırma kilitlendiyse çık
+
                 currentX = e.touches[0].clientX;
-                let diffX = currentX - startX;
+                currentY = e.touches[0].clientY;
+                diffX = currentX - startX;
+                diffY = currentY - startY;
 
-                // Sadece yatay kaydırmaya izin ver
-                // (Dikey kaydırma (scroll) ile çakışmayı önlemek için)
-                // Bu örnekte, 'touch-action: pan-y' CSS ile ayarlandı,
-                // bu yüzden dikey kaydırma tarayıcı tarafından yönetilir.
-                
-                // Görevi tamamladıysa, sola kaydırmaya izin verme
-                if (task.completed && diffX < 0) diffX = 0;
-                // Görevi tamamlamadıysa, sağa kaydırmaya izin verme
-                if (!task.completed && diffX > 0) diffX = 0;
-
-                // Kaydırmayı sınırla (örn: 120px)
-                if (Math.abs(diffX) > 120) {
-                    diffX = diffX > 0 ? 120 : -120;
+                // Yönü belirle (ilk 10px'lik hareketten sonra)
+                // 'isScrolling' henüz ayarlanmadıysa
+                if (!isScrolling && (Math.abs(diffX) > 10 || Math.abs(diffY) > 10)) {
+                    if (Math.abs(diffY) > Math.abs(diffX)) {
+                        // Dikey hareket daha fazla
+                        isScrolling = true;
+                        isSwiping = false; // Swipe'ı iptal et
+                        cancelAnimationFrame(rafId);
+                        return;
+                    }
                 }
                 
-                // İçeriği hareket ettir
-                contentElement.style.transform = `translateX(${diffX}px)`;
+                // 'isSwiping' (yani yatay kaydırma) kilitliyse devam et
+                if (isSwiping && !isScrolling) {
+                    let transformX = diffX;
+
+                    // Kaydırmayı sınırla ve direnç uygula
+                    if (transformX > 0) { // Sağ (Tamamla)
+                        transformX = Math.min(transformX, maxSwipe + (transformX * 0.1));
+                    }
+                    if (transformX < 0) { // Sol (Sil)
+                        transformX = Math.max(transformX, -maxSwipe - (Math.abs(transformX) * 0.1));
+                    }
+
+                    // UI'ı güncelle
+                    requestAnimationFrame(() => {
+                        if (isSwiping && !isScrolling) { // Hâlâ geçerliyse
+                            contentElement.style.transform = `translateX(${transformX}px)`;
+                        }
+                    });
+                }
             }
 
-            async function onTouchEnd(e) {
-                if (!isSwiping) return;
-                isSwiping = false;
-
-                const diffX = currentX - startX;
+            function onTouchEnd(e) {
+                if (!isSwiping) { // Geçerli bir swipe değilse
+                    isScrolling = false; // Temizle
+                    return;
+                }
                 
-                // Animasyonu geri ekle
+                isSwiping = false;
+                isScrolling = false; // Her durumda temizle
+                cancelAnimationFrame(rafId);
                 contentElement.style.transition = 'transform 0.3s ease-out';
                 
-                if (!task.completed && diffX < -threshold) { // Sola kaydırma (Sil)
-                    // Hareketi tamamla (görevi ekran dışına kaydır)
-                    contentElement.style.transform = 'translateX(-100%)';
-                    // Animasyon bittikten sonra sil
-                    setTimeout(async () => {
-                        await deleteTask(task.id);
-                        // renderTasks() zaten onSnapshot tarafından tetiklenecek
-                        // ama anında geri bildirim için elementi manuel de kaldırabiliriz
-                        taskElement.remove();
-                    }, 300);
-                } else if (task.completed && diffX > threshold) { // Sağa kaydırma (Tamamla/Geri Al)
-                    // Hareketi tamamla
-                    contentElement.style.transform = 'translateX(100%)';
-                    setTimeout(async () => {
-                        await toggleTaskCompleted(task.id, task.completed);
-                        // Geri kaydırmadan önce DOM'dan kaldır
-                        taskElement.remove();
-                    }, 300);
-                } else {
-                    // Eşiği geçmedi, geri çek
-                    contentElement.style.transform = 'translateX(0px)';
-                }
-            }
-            
-            // Mouse olayları (masaüstü için - dokunmatik simülasyonu)
-            // Gerçek bir mobil deneyim için bunlar atlanabilir,
-            // ama test için kullanışlıdır.
-            function onMouseDown(e) {
-                e.preventDefault(); // Metin seçmeyi engelle
-                startX = e.clientX;
-                currentX = startX;
-                isSwiping = true;
-                contentElement.style.transition = 'none';
-                window.addEventListener('mousemove', onMouseMove);
-                window.addEventListener('mouseup', onMouseUp);
-            }
-            
-            function onMouseMove(e) {
-                if (!isSwiping) return;
-                currentX = e.clientX;
-                let diffX = currentX - startX;
-                
-                if (task.completed && diffX < 0) diffX = 0;
-                if (!task.completed && diffX > 0) diffX = 0;
-                if (Math.abs(diffX) > 120) diffX = diffX > 0 ? 120 : -120;
-                
-                contentElement.style.transform = `translateX(${diffX}px)`;
-            }
-            
-            async function onMouseUp(e) {
-                if (!isSwiping) return;
-                isSwiping = false;
-                window.removeEventListener('mousemove', onMouseMove);
-                window.removeEventListener('mouseup', onMouseUp);
+                // Hızı da hesaba kat
+                const finalDiff = diffX + velocity * 5; 
 
-                // onTouchEnd ile aynı mantık
-                const diffX = currentX - startX;
-                contentElement.style.transition = 'transform 0.3s ease-out';
-                
-                if (!task.completed && diffX < -threshold) { // Sil
-                    contentElement.style.transform = 'translateX(-100%)';
-                    setTimeout(() => deleteTask(task.id), 300);
-                } else if (task.completed && diffX > threshold) { // Tamamlandı Geri Al
-                    contentElement.style.transform = 'translateX(100%)';
-                    setTimeout(() => toggleTaskCompleted(task.id, task.completed), 300);
+                if (finalDiff > threshold) { // Sağ (Tamamla)
+                    contentElement.style.transform = `translateX(100%)`;
+                    setTimeout(() => {
+                        toggleTaskCompleted(task.id, task.completed);
+                    }, 300);
+                } else if (finalDiff < -threshold) { // Sol (Sil)
+                    contentElement.style.transform = `translateX(-100%)`;
+                    setTimeout(() => {
+                        deleteTask(task.id);
+                    }, 300);
                 } else {
-                    contentElement.style.transform = 'translateX(0px)';
+                    // Geri çek
+                    contentElement.style.transform = `translateX(0px)`;
                 }
             }
 
-            // Dokunmatik olaylarını ekle
+            // Olay dinleyicilerini Ekle
             contentElement.addEventListener('touchstart', onTouchStart, { passive: true });
             contentElement.addEventListener('touchmove', onTouchMove, { passive: true });
             contentElement.addEventListener('touchend', onTouchEnd);
             contentElement.addEventListener('touchcancel', onTouchEnd);
-            
-            // Masaüstü test için mouse olaylarını ekle
-            contentElement.addEventListener('mousedown', onMouseDown);
         }
 
-        // --- Veri Aktarımı (Export/Import) ---
-
-        /**
-         * Tüm görevleri bir JSON dosyası olarak indirir.
-         */
+        // --- Veri Aktarımı (localStorage) ---
+        
         function exportData() {
-            if (allTasks.length === 0) {
-                showToast("Dışa aktarılacak görev yok.", 3000);
-                return;
+            try {
+                const data = {
+                    tasks: allTasks,
+                    learnedCategories: learnedCategories,
+                    version: 1
+                };
+                const dataStr = JSON.stringify(data, null, 2); // Okunabilir format
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `gorev_yoneticisi_yedeği_${new Date().toISOString().slice(0,10)}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showToast("Veri dışa aktarıldı.", 2000);
+            } catch (e) {
+                console.error("Dışa aktarma hatası:", e);
+                showToast("Hata: Veri dışa aktarılamadı.", 3000);
             }
-            
-            // Timestamp'leri okunabilir string'lere dönüştür
-            const exportableData = allTasks.map(task => ({
-                ...task,
-                createdAt: task.createdAt ? task.createdAt.toDate().toISOString() : null,
-                dueDate: task.dueDate ? task.dueDate.toDate().toISOString() : null,
-            }));
-            
-            const dataStr = JSON.stringify(exportableData, null, 2);
-            const dataBlob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(dataBlob);
-            
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `tasks-backup-${new Date().toISOString().split('T')[0]}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
-            showToast("Veriler dışa aktarıldı!");
         }
 
-        /**
-         * JSON dosyasından verileri okur ve Firestore'a yazar (Batch).
-         */
-        async function importData(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+        function importData(event) {
+             const file = event.target.files[0];
+             if (!file) return;
 
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const importedTasks = JSON.parse(e.target.result);
-                    if (!Array.isArray(importedTasks)) {
-                        throw new Error("JSON dosyası bir dizi (array) değil.");
-                    }
-
-                    // Firestore'a toplu yazma (Batch Write)
-                    const batch = writeBatch(db);
-                    
-                    importedTasks.forEach(task => {
-                        // ID'leri kaldırarak Firestore'un yeni ID'ler oluşturmasını sağla
-                        const { id, ...taskData } = task;
-
-                        // Tarih string'lerini Timestamp'e geri dönüştür
-                        const newTask = {
-                            ...taskData,
-                            createdAt: taskData.createdAt ? Timestamp.fromDate(new Date(taskData.createdAt)) : Timestamp.now(),
-                            dueDate: taskData.dueDate ? Timestamp.fromDate(new Date(taskData.dueDate)) : null
-                        };
-                        
-                        // Koleksiyona yeni bir belge referansı oluştur ve batch'e ekle
-                        const newDocRef = doc(tasksCollection); // Otomatik ID oluşturur
-                        batch.set(newDocRef, newTask);
-                    });
-
-                    await batch.commit();
-                    showToast(`${importedTasks.length} görev başarıyla içe aktarıldı!`);
-                    
-                } catch (error) {
-                    console.error("İçe aktarma hatası:", error);
-                    showToast(`Hata: ${error.message}`, 5000);
-                } finally {
-                    // Input'u sıfırla ki aynı dosyayı tekrar seçebilsin
-                    event.target.value = null;
-                }
-            };
-            reader.readAsText(file);
+             const reader = new FileReader();
+             reader.onload = (e) => {
+                 try {
+                     const data = JSON.parse(e.target.result);
+                     
+                     if (data && data.tasks && Array.isArray(data.tasks)) {
+                         // (Burada daha kapsamlı veri doğrulama yapılabilir)
+                         allTasks = data.tasks;
+                         learnedCategories = data.learnedCategories || {};
+                         
+                         saveTasksToLocalStorage(); // Yeni veriyi kaydet
+                         renderTasks(); // Ekrana çiz
+                         trainCategoryLearner(allTasks); // Kategorileri yeniden eğit
+                         
+                         showToast("Veri başarıyla içe aktarıldı!", 3000);
+                     } else {
+                         showToast("Hata: Geçersiz dosya formatı.", 3000);
+                     }
+                 } catch (err) {
+                     console.error("İçe aktarma hatası:", err);
+                     showToast("Hata: Dosya okunurken bir sorun oluştu.", 3000);
+                 } finally {
+                     // Input'u sıfırla ki aynı dosyayı tekrar seçebilsin
+                     event.target.value = null;
+                 }
+             };
+             reader.readAsText(file);
         }
 
-
-        // --- Olay Dinleyicileri (Event Listeners) ---
-
+        // --- Olay Dinleyicileri ---
+        
         function setupEventListeners() {
-            // Görev Ekleme
             addTaskButton.addEventListener('click', addTaskToDb);
-            taskInput.addEventListener('keydown', (e) => {
+            taskInput.addEventListener('keydown', (e) => { 
                 if (e.key === 'Enter') {
-                    addTaskToDb();
+                    e.preventDefault(); // Form göndermeyi engelle
+                    addTaskToDb(); 
                 }
             });
-
-            // Gelişmiş Seçenekler Paneli
-            toggleAdvancedButton.addEventListener('click', toggleAdvancedOptions);
-
-            // Akıllı Kategori
-            magicCategoryButton.addEventListener('click', suggestCategory);
-
-            // Arama
+            
             searchBar.addEventListener('input', renderTasks);
-
-            // Filtre Butonları
-            filterButtons.forEach(button => {
+            
+            filterButtons.forEach(button => { 
                 button.addEventListener('click', () => {
-                    // Aktif stili güncelle
-                    filterButtons.forEach(btn => btn.classList.remove('bg-blue-500', 'text-white', 'dark:bg-blue-700'));
-                    filterButtons.forEach(btn => btn.classList.add('bg-gray-200', 'text-gray-700', 'dark:bg-gray-600', 'dark:text-gray-200'));
-                    button.classList.add('bg-blue-500', 'text-white', 'dark:bg-blue-700');
-                    button.classList.remove('bg-gray-200', 'text-gray-700', 'dark:bg-gray-600', 'dark:text-gray-200');
+                    // Aktif stili ayarla
+                    filterButtons.forEach(btn => {
+                         btn.classList.remove('bg-white', 'dark:bg-gray-600', 'text-blue-500', 'dark:text-blue-300', 'shadow', 'font-semibold');
+                         btn.classList.add('text-gray-700', 'dark:text-gray-300', 'font-medium');
+                    });
+                    button.classList.add('bg-white', 'dark:bg-gray-600', 'text-blue-500', 'dark:text-blue-300', 'shadow', 'font-semibold');
+                    button.classList.remove('text-gray-700', 'dark:text-gray-300', 'font-medium');
                     
-                    // Filtreyi ayarla ve yeniden çiz
-                    currentFilter = button.dataset.filter;
-                    renderTasks();
-                });
+                    // Filtreyi güncelle ve yeniden çiz
+                    currentFilter = button.dataset.filter; 
+                    renderTasks(); 
+                }); 
             });
-
-            // Düzenleme Modalı
+            
             saveTaskButton.addEventListener('click', saveTaskChanges);
             cancelEditButton.addEventListener('click', closeEditModal);
+            
             addSubtaskButton.addEventListener('click', addNewSubtaskToModal);
-            newSubtaskInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault(); // Formu göndermeyi engelle
-                    addNewSubtaskToModal();
-                }
+            newSubtaskInput.addEventListener('keydown', (e) => { 
+                if (e.key === 'Enter') { 
+                    e.preventDefault(); 
+                    addNewSubtaskToModal(); 
+                } 
             });
-
-            // Rapor Modalı
+            
             reportButton.addEventListener('click', showReportModal);
-            closeReportButton.addEventListener('click', () => reportModal.classList.add('hidden'));
+            closeReportButton.addEventListener('click', () => reportModal.classList.remove('open'));
+            
             exportDataButton.addEventListener('click', exportData);
             importDataInput.addEventListener('change', importData);
-
-            // Odaklanma Modalı
+            
             focusButton.addEventListener('click', showFocusModal);
-            closeFocusButton.addEventListener('click', () => focusModal.classList.add('hidden'));
-
-            // Tema Değiştirme
+            closeFocusButton.addEventListener('click', () => focusModal.classList.remove('open'));
+            
             themeToggle.addEventListener('click', toggleTheme);
+            
+            // Sürükle-bırak olayları liste konteynerına
+            taskList.addEventListener('dragover', handleDragOver);
+            taskList.addEventListener('dragleave', handleDragLeave);
+            taskList.addEventListener('drop', handleDrop);
         }
-
-        /**
-         * Gelişmiş seçenekler panelini açar/kapar.
-         */
-        function toggleAdvancedOptions() {
-            advancedOptions.classList.toggle('open');
-            const icon = toggleAdvancedButton.querySelector('svg');
-            if (advancedOptions.classList.contains('open')) {
-                // Panel açıldı, ikonu 'X' yap
-                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />';
-            } else {
-                // Panel kapandı, ikonu '+' yap
-                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />';
-            }
+        
+        // --- Başlangıç Fonksiyonu ---
+        
+        function initializeAppLogic() {
+            console.log("Initializing app..."); // Başlangıç logu
+            loadTheme(); 
+            setupEventListeners(); 
+            loadTasksFromLocalStorage();
+            trainCategoryLearner(allTasks);
+            renderTasks(); 
+            requestNotificationPermission(); 
+            startNotificationTimer();
+            console.log("App initialized."); // Bitiş logu
         }
-
 
         // --- Başlangıç ---
-        
-        // Sayfa yüklendiğinde
-        document.addEventListener('DOMContentLoaded', () => {
-            initializeFirebase();
-            setupEventListeners();
-            loadTheme();
-            requestNotificationPermission(); // Bildirim izni iste
-        });
+        document.addEventListener('DOMContentLoaded', initializeAppLogic);
 
     </script>
 </body>
